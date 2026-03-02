@@ -1,9 +1,12 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   body {
+    font-family: 'Noto Sans SC', sans-serif;
     @apply bg-base-300 text-base-content min-h-screen;
   }
 }
@@ -11,5 +14,6 @@
 @layer utilities {
   .font-wow {
     font-family: 'Cinzel', serif;
+    letter-spacing: 0.05em;
   }
 }
