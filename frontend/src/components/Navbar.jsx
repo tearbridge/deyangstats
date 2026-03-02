@@ -21,6 +21,12 @@ export default function Navbar() {
             🏆 排行榜
           </Link>
           <Link
+            to="/marathon"
+            className={`btn btn-sm btn-ghost ${location.pathname === '/marathon' ? 'btn-active' : ''}`}
+          >
+            🏃 马拉松
+          </Link>
+          <Link
             to="/admin"
             className={`btn btn-sm btn-ghost ${location.pathname === '/admin' ? 'btn-active' : ''}`}
           >

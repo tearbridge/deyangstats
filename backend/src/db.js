@@ -36,6 +36,14 @@ db.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_snapshots_character_id ON snapshots(character_id);
   CREATE INDEX IF NOT EXISTS idx_snapshots_fetched_at ON snapshots(fetched_at);
+
+  CREATE TABLE IF NOT EXISTS runners (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    athlete_id TEXT NOT NULL UNIQUE,
+    api_key TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
 `);
 
 module.exports = db;

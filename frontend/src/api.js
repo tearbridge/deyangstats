@@ -58,6 +58,34 @@ export async function deleteCharacter(id, adminToken) {
   return res.json();
 }
 
+export async function getRunners() {
+  const res = await fetch(`${BASE}/runners`);
+  if (!res.ok) throw new Error('Failed to fetch runners');
+  return res.json();
+}
+
+export async function addRunner(name, athlete_id, api_key, adminToken) {
+  const res = await fetch(`${BASE}/runners`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Token': adminToken },
+    body: JSON.stringify({ name, athlete_id, api_key }),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Failed to add runner');
+  }
+  return res.json();
+}
+
+export async function deleteRunner(id, adminToken) {
+  const res = await fetch(`${BASE}/runners/${id}`, {
+    method: 'DELETE',
+    headers: { 'X-Admin-Token': adminToken },
+  });
+  if (!res.ok) throw new Error('Failed to delete runner');
+  return res.json();
+}
+
 export async function refreshCharacter(id, adminToken) {
   const res = await fetch(`${BASE}/characters/${id}/refresh`, {
     method: 'POST',

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
-import { getCharacters, addCharacter, deleteCharacter, refreshCharacter } from '../api';
+import { getCharacters, addCharacter, deleteCharacter, refreshCharacter, getRunners, addRunner, deleteRunner } from '../api';
 
 export default function Admin() {
   const [token, setToken] = useState(() => localStorage.getItem('adminToken') || '');
@@ -13,6 +13,11 @@ export default function Admin() {
   // New character form
   const [form, setForm] = useState({ name: '', realm: '凤凰之神', region: 'cn' });
   const [adding, setAdding] = useState(false);
+
+  // Runner management
+  const [runners, setRunners] = useState([]);
+  const [runnerForm, setRunnerForm] = useState({ name: '', athlete_id: '', api_key: '' });
+  const [addingRunner, setAddingRunner] = useState(false);
 
   const showMsg = (text, type = 'success') => {
     setMessage({ text, type });
@@ -27,6 +32,14 @@ export default function Admin() {
       showMsg(err.message, 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadRunners = async () => {
+    try {
+      setRunners(await getRunners());
+    } catch (err) {
+      // ignore, runners API may fail if no data
     }
   };
 
@@ -45,12 +58,14 @@ export default function Admin() {
     setToken(tokenInput);
     setAuthenticated(true);
     loadCharacters();
+    loadRunners();
   };
 
   useEffect(() => {
     if (token) {
       setAuthenticated(true);
       loadCharacters();
+      loadRunners();
     }
   }, []);
 
@@ -86,6 +101,33 @@ export default function Admin() {
       await refreshCharacter(char.id, token);
       showMsg(`已刷新 ${char.name}`);
       setTimeout(loadCharacters, 2000);
+    } catch (err) {
+      showMsg(err.message, 'error');
+    }
+  };
+
+  const handleAddRunner = async (e) => {
+    e.preventDefault();
+    if (!runnerForm.name.trim() || !runnerForm.athlete_id.trim() || !runnerForm.api_key.trim()) return;
+    setAddingRunner(true);
+    try {
+      await addRunner(runnerForm.name.trim(), runnerForm.athlete_id.trim(), runnerForm.api_key.trim(), token);
+      showMsg(`已添加跑者 ${runnerForm.name}`);
+      setRunnerForm({ name: '', athlete_id: '', api_key: '' });
+      loadRunners();
+    } catch (err) {
+      showMsg(err.message, 'error');
+    } finally {
+      setAddingRunner(false);
+    }
+  };
+
+  const handleDeleteRunner = async (runner) => {
+    if (!confirm(`确认删除跑者 ${runner.name}？`)) return;
+    try {
+      await deleteRunner(runner.id, token);
+      showMsg(`已删除 ${runner.name}`);
+      loadRunners();
     } catch (err) {
       showMsg(err.message, 'error');
     }
@@ -213,6 +255,74 @@ export default function Admin() {
                             删除
                           </button>
                         </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Runner management */}
+            <div className="card bg-base-100 shadow mt-6">
+              <div className="card-body">
+                <h2 className="card-title text-base font-wow">🏃 跑者管理</h2>
+                <form onSubmit={handleAddRunner} className="space-y-3 mt-2">
+                  <div className="grid grid-cols-1 gap-2">
+                    <div className="form-control">
+                      <label className="label text-xs"><span className="label-text">跑者名字</span></label>
+                      <input
+                        type="text"
+                        className="input input-bordered input-sm"
+                        value={runnerForm.name}
+                        onChange={e => setRunnerForm(f => ({ ...f, name: e.target.value }))}
+                        placeholder="例：张三"
+                        required
+                      />
+                    </div>
+                    <div className="form-control">
+                      <label className="label text-xs"><span className="label-text">Athlete ID</span></label>
+                      <input
+                        type="text"
+                        className="input input-bordered input-sm"
+                        value={runnerForm.athlete_id}
+                        onChange={e => setRunnerForm(f => ({ ...f, athlete_id: e.target.value }))}
+                        placeholder="intervals.icu Athlete ID（如 i12345）"
+                        required
+                      />
+                    </div>
+                    <div className="form-control">
+                      <label className="label text-xs"><span className="label-text">API Key</span></label>
+                      <input
+                        type="password"
+                        className="input input-bordered input-sm"
+                        value={runnerForm.api_key}
+                        onChange={e => setRunnerForm(f => ({ ...f, api_key: e.target.value }))}
+                        placeholder="intervals.icu API Key"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <button type="submit" className="btn btn-success btn-sm" disabled={addingRunner}>
+                    {addingRunner ? <span className="loading loading-spinner loading-xs"></span> : '添加跑者'}
+                  </button>
+                </form>
+
+                {runners.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    <div className="text-xs text-base-content/50 mb-2">已有跑者</div>
+                    {runners.map(runner => (
+                      <div key={runner.id} className="flex items-center justify-between p-2 rounded-lg bg-base-200">
+                        <div>
+                          <div className="font-semibold text-sm">🏃 {runner.name}</div>
+                          <div className="text-xs text-base-content/50">ID: {runner.athlete_id}</div>
+                          {runner.error && <div className="text-xs text-error">⚠️ {runner.error}</div>}
+                        </div>
+                        <button
+                          className="btn btn-xs btn-error btn-outline"
+                          onClick={() => handleDeleteRunner(runner)}
+                        >
+                          删除
+                        </button>
                       </div>
                     ))}
                   </div>

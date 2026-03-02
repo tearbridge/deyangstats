@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const db = require('./db');
 const { fetchCharacterProfile, extractScore, extractWeeklyBest, SEASONS } = require('./raiderio');
+const { fetchRecentRuns, fetchWellness } = require('./intervals');
 const { startScheduler, refreshCharacter } = require('./scheduler');
 
 const app = express();
@@ -246,6 +247,64 @@ app.post('/api/characters/:id/refresh', requireAdmin, async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// GET /api/runners — 返回所有跑者及其最新数据
+app.get('/api/runners', async (req, res) => {
+  const runners = db.prepare('SELECT * FROM runners ORDER BY created_at ASC').all();
+  const results = await Promise.all(runners.map(async runner => {
+    try {
+      const [runs, wellness] = await Promise.all([
+        fetchRecentRuns(runner.athlete_id, runner.api_key),
+        fetchWellness(runner.athlete_id, runner.api_key),
+      ]);
+
+      // 本周跑量（周一开始）
+      const now = new Date();
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+      monday.setHours(0, 0, 0, 0);
+      const weeklyRuns = runs.filter(r => new Date(r.start_date_local) >= monday);
+      const weeklyDistance = weeklyRuns.reduce((s, r) => s + (r.distance || 0), 0);
+
+      return {
+        id: runner.id,
+        name: runner.name,
+        athlete_id: runner.athlete_id,
+        recent_runs: runs.slice(0, 5).map(r => ({
+          name: r.name,
+          date: r.start_date_local,
+          distance: r.distance,
+          moving_time: r.moving_time,
+          pace: r.moving_time && r.distance ? (r.moving_time / (r.distance / 1000)) : null,
+          total_elevation_gain: r.total_elevation_gain,
+        })),
+        weekly_distance: weeklyDistance,
+        ctl: wellness?.ctl || 0,
+        atl: wellness?.atl || 0,
+        tsb: wellness ? (wellness.ctl - wellness.atl) : 0,
+      };
+    } catch (err) {
+      return { id: runner.id, name: runner.name, athlete_id: runner.athlete_id, error: err.message };
+    }
+  }));
+  res.json(results);
+});
+
+// POST /api/runners — 添加跑者（admin）
+app.post('/api/runners', requireAdmin, (req, res) => {
+  const { name, athlete_id, api_key } = req.body;
+  if (!name || !athlete_id || !api_key) return res.status(400).json({ error: 'name, athlete_id and api_key required' });
+  const existing = db.prepare('SELECT id FROM runners WHERE athlete_id = ?').get(athlete_id);
+  if (existing) return res.status(409).json({ error: 'Runner already exists' });
+  const result = db.prepare('INSERT INTO runners (name, athlete_id, api_key) VALUES (?, ?, ?)').run(name, athlete_id, api_key);
+  res.status(201).json(db.prepare('SELECT id, name, athlete_id, created_at FROM runners WHERE id = ?').get(result.lastInsertRowid));
+});
+
+// DELETE /api/runners/:id — 删除跑者（admin）
+app.delete('/api/runners/:id', requireAdmin, (req, res) => {
+  db.prepare('DELETE FROM runners WHERE id = ?').run(req.params.id);
+  res.json({ success: true });
 });
 
 app.listen(PORT, () => {
