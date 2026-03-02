@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import ClassBadge from './ClassBadge';
 import ScoreBadge from './ScoreBadge';
 
-export default function CharacterCard({ character, rank }) {
+export default function CharacterCard({ character, rank, season }) {
   const navigate = useNavigate();
 
   const rankColors = ['text-yellow-400', 'text-gray-300', 'text-amber-600'];
@@ -22,7 +22,7 @@ export default function CharacterCard({ character, rank }) {
   return (
     <div
       className="card bg-base-100 shadow-xl hover:shadow-purple-900/30 hover:scale-[1.02] transition-all cursor-pointer border border-base-content/10 hover:border-primary/40"
-      onClick={() => navigate(`/character/${character.id}`)}
+      onClick={() => navigate(`/character/${character.id}${season ? `?season=${season}` : ''}`)}
     >
       <div className="card-body p-4">
         <div className="flex items-start gap-3">

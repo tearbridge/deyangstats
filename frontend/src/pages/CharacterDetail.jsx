@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import ClassBadge from '../components/ClassBadge';
 import ScoreBadge from '../components/ScoreBadge';
@@ -26,6 +26,8 @@ function KeyLevelBadge({ level }) {
 export default function CharacterDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const season = searchParams.get('season');
   const [character, setCharacter] = useState(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -34,12 +36,16 @@ export default function CharacterDetail() {
   useEffect(() => {
     async function load() {
       try {
-        const [charData, histData] = await Promise.all([
-          getCharacter(id),
-          getCharacterHistory(id),
-        ]);
+        const url = season ? `/api/characters/${id}?season=${season}` : `/api/characters/${id}`;
+        const charRes = await fetch(url);
+        if (!charRes.ok) throw new Error('Failed to fetch character');
+        const charData = await charRes.json();
         setCharacter(charData);
-        setHistory(histData.history || []);
+        // Only fetch history for current season (cached data)
+        if (!season) {
+          const histData = await getCharacterHistory(id);
+          setHistory(histData.history || []);
+        }
       } catch (err) {
         setError(err.message);
       } finally {
@@ -47,7 +53,7 @@ export default function CharacterDetail() {
       }
     }
     load();
-  }, [id]);
+  }, [id, season]);
 
   if (loading) return (
     <div className="min-h-screen bg-base-300">
@@ -82,9 +88,12 @@ export default function CharacterDetail() {
       {/* Header */}
       <div className="bg-base-100 border-b border-base-content/10">
         <div className="container mx-auto px-4 py-6 max-w-4xl">
-          <button className="btn btn-ghost btn-sm mb-4" onClick={() => navigate('/')}>
+          <button className="btn btn-ghost btn-sm mb-4" onClick={() => navigate(season ? `/?season=${season}` : '/')}>
             ← 返回
           </button>
+          {season && (
+            <div className="badge badge-info mb-3">📜 {season}</div>
+          )}
 
           <div className="flex items-start gap-4">
             {character.profile?.thumbnail_url ? (

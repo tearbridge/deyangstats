@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Noto+Sans+SC:wght@400;500;700&family=ZCOOL+XiaoWei&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -13,7 +13,11 @@
 
 @layer utilities {
   .font-wow {
-    font-family: 'Cinzel', serif;
+    font-family: 'Cinzel', 'ZCOOL XiaoWei', serif;
     letter-spacing: 0.05em;
+  }
+  .font-title-cn {
+    font-family: 'ZCOOL XiaoWei', serif;
+    letter-spacing: 0.1em;
   }
 }

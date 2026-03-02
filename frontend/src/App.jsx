@@ -69,7 +69,7 @@ export default function App() {
 
       {/* Hero section */}
       <div className="bg-gradient-to-b from-base-100 to-base-300 py-8 px-4 text-center">
-        <h1 className="text-4xl font-wow text-primary mb-2">⚔️ 德阳小队</h1>
+        <h1 className="text-4xl font-title-cn text-primary mb-2">⚔️ 德阳小队</h1>
         <p className="text-base-content/60">Mythic+ 大秘境追踪 · 数据来源 Raider.IO</p>
         {lastUpdated && (
           <p className="text-xs text-base-content/40 mt-1">
@@ -156,7 +156,7 @@ export default function App() {
             {/* Character grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {characters.map((char, index) => (
-                <CharacterCard key={char.id} character={char} rank={index + 1} />
+                <CharacterCard key={char.id} character={char} rank={index + 1} season={activeSeason?.id} />
               ))}
             </div>
           </>

@@ -191,15 +191,30 @@ app.get('/api/characters/:id/history', (req, res) => {
   });
 });
 
-// GET /api/characters/:id — single character with full data
-app.get('/api/characters/:id', (req, res) => {
+// GET /api/characters/:id — single character with full data, optional ?season=
+app.get('/api/characters/:id', async (req, res) => {
   const { id } = req.params;
+  const { season } = req.query;
 
   const char = db.prepare('SELECT * FROM characters WHERE id = ?').get(id);
   if (!char) {
     return res.status(404).json({ error: 'Character not found' });
   }
 
+  // If season requested, fetch live from Raider.IO
+  if (season) {
+    const validSeason = SEASONS.find(s => s.id === season);
+    if (!validSeason) return res.status(400).json({ error: 'Invalid season' });
+    try {
+      const data = await fetchCharacterProfile(char.region, char.realm, char.name, season);
+      const score = data.mythic_plus_scores_by_season?.[0]?.scores?.all || 0;
+      return res.json({ ...char, score, fetched_at: new Date().toISOString(), profile: data });
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
+  // Default: return cached snapshot
   const latest = db.prepare(`
     SELECT * FROM snapshots
     WHERE character_id = ?
