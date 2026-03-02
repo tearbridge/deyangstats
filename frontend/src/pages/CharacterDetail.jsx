@@ -77,8 +77,8 @@ export default function CharacterDetail() {
   );
 
   const profile = character.profile;
-  const recentRuns = profile?.mythic_plus_recent_runs || [];
-  const bestRuns = profile?.mythic_plus_best_runs || [];
+  const recentRuns = season ? [] : (profile?.mythic_plus_recent_runs || []);
+  const bestRuns = season ? [] : (profile?.mythic_plus_best_runs || []);
   const scores = profile?.mythic_plus_scores_by_season?.[0]?.scores || {};
 
   return (
@@ -153,7 +153,7 @@ export default function CharacterDetail() {
             <div className="card-body p-4">
               <h2 className="card-title text-base font-wow">🏆 本赛季最高记录</h2>
               {bestRuns.length === 0 ? (
-                <p className="text-base-content/50 text-sm">暂无记录</p>
+                <p className="text-base-content/50 text-sm">{season ? 'Raider.IO 不提供历史赛季跑本记录' : '暂无记录'}</p>
               ) : (
                 <div className="space-y-2 max-h-80 overflow-y-auto">
                   {bestRuns.slice(0, 20).map((run, i) => (
@@ -177,7 +177,7 @@ export default function CharacterDetail() {
             <div className="card-body p-4">
               <h2 className="card-title text-base font-wow">⏱️ 最近跑本</h2>
               {recentRuns.length === 0 ? (
-                <p className="text-base-content/50 text-sm">暂无记录</p>
+                <p className="text-base-content/50 text-sm">{season ? 'Raider.IO 不提供历史赛季跑本记录' : '暂无记录'}</p>
               ) : (
                 <div className="space-y-2 max-h-80 overflow-y-auto">
                   {recentRuns.slice(0, 15).map((run, i) => (

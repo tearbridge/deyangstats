@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Noto+Sans+SC:wght@400;500;700&family=ZCOOL+XiaoWei&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Serif+SC:wght@600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -17,7 +17,8 @@
     letter-spacing: 0.05em;
   }
   .font-title-cn {
-    font-family: 'ZCOOL XiaoWei', serif;
-    letter-spacing: 0.1em;
+    font-family: 'Noto Serif SC', serif;
+    letter-spacing: 0.08em;
+    font-weight: 700;
   }
 }
