@@ -11,7 +11,8 @@ export default function CharacterCard({ character, rank, season }) {
 
   const timeAgo = (dateStr) => {
     if (!dateStr) return '从未';
-    const diff = Date.now() - new Date(dateStr).getTime();
+    const diff = Date.now() - new Date(dateStr + 'Z').getTime();
+    if (diff < 0) return '刚刚';
     const mins = Math.floor(diff / 60000);
     if (mins < 60) return `${mins}分钟前`;
     const hours = Math.floor(mins / 60);
