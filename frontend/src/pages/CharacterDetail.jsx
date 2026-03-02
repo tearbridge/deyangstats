@@ -160,10 +160,13 @@ export default function CharacterDetail() {
                     <div key={i} className="flex items-center justify-between text-sm border-b border-base-content/5 pb-1">
                       <div className="flex items-center gap-2">
                         <KeyLevelBadge level={run.mythic_level} />
-                        <span className="truncate max-w-[150px] text-base-content/80">{run.dungeon?.name || run.short_name}</span>
+                        <span className="truncate max-w-[130px] text-base-content/80">{run.dungeon?.name || run.short_name}</span>
                       </div>
-                      <div className="text-right text-xs text-base-content/50">
-                        {formatDate(run.completed_at)}
+                      <div className="text-right">
+                        {run.score > 0 && (
+                          <span className="text-xs font-semibold text-primary">{run.score.toFixed(1)}</span>
+                        )}
+                        <div className="text-xs text-base-content/40">{formatDate(run.completed_at)}</div>
                       </div>
                     </div>
                   ))}
