@@ -26,6 +26,12 @@ export default function Navbar() {
             🏃 马拉松
           </Link>
           <Link
+            to="/valorant"
+            className={`btn btn-sm btn-ghost ${location.pathname.startsWith('/valorant') ? 'btn-active' : ''}`}
+          >
+            🎯 Valorant
+          </Link>
+          <Link
             to="/admin"
             className={`btn btn-sm btn-ghost ${location.pathname === '/admin' ? 'btn-active' : ''}`}
           >

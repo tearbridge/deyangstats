@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
-import { getCharacters, addCharacter, deleteCharacter, refreshCharacter, getRunners, addRunner, deleteRunner } from '../api';
+import { getCharacters, addCharacter, deleteCharacter, refreshCharacter, getRunners, addRunner, deleteRunner, getValPlayers, addValPlayer, deleteValPlayer } from '../api';
 
 export default function Admin() {
   const [token, setToken] = useState(() => localStorage.getItem('adminToken') || '');
@@ -18,6 +18,11 @@ export default function Admin() {
   const [runners, setRunners] = useState([]);
   const [runnerForm, setRunnerForm] = useState({ name: '', athlete_id: '', api_key: '' });
   const [addingRunner, setAddingRunner] = useState(false);
+
+  // Valorant management
+  const [valPlayers, setValPlayers] = useState([]);
+  const [valForm, setValForm] = useState({ name: '', riot_id: '', tagline: '', region: 'ap' });
+  const [addingVal, setAddingVal] = useState(false);
 
   const showMsg = (text, type = 'success') => {
     setMessage({ text, type });
@@ -39,7 +44,15 @@ export default function Admin() {
     try {
       setRunners(await getRunners());
     } catch (err) {
-      // ignore, runners API may fail if no data
+      // ignore
+    }
+  };
+
+  const loadValPlayers = async () => {
+    try {
+      setValPlayers(await getValPlayers());
+    } catch (err) {
+      // ignore
     }
   };
 
@@ -59,6 +72,7 @@ export default function Admin() {
     setAuthenticated(true);
     loadCharacters();
     loadRunners();
+    loadValPlayers();
   };
 
   useEffect(() => {
@@ -66,6 +80,7 @@ export default function Admin() {
       setAuthenticated(true);
       loadCharacters();
       loadRunners();
+      loadValPlayers();
     }
   }, []);
 
@@ -320,6 +335,94 @@ export default function Admin() {
                         <button
                           className="btn btn-xs btn-error btn-outline"
                           onClick={() => handleDeleteRunner(runner)}
+                        >
+                          删除
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Valorant management */}
+            <div className="card bg-base-100 shadow mt-4">
+              <div className="card-body">
+                <h2 className="card-title text-lg">🎯 Valorant 玩家管理</h2>
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!valForm.name.trim() || !valForm.riot_id.trim() || !valForm.tagline.trim()) return;
+                  setAddingVal(true);
+                  try {
+                    await addValPlayer(valForm.name.trim(), valForm.riot_id.trim(), valForm.tagline.trim(), valForm.region, token);
+                    showMsg(`已添加 ${valForm.riot_id}#${valForm.tagline}，正在拉取数据...`);
+                    setValForm(f => ({ ...f, name: '', riot_id: '', tagline: '' }));
+                    setTimeout(loadValPlayers, 3000);
+                  } catch (err) {
+                    showMsg(err.message, 'error');
+                  } finally {
+                    setAddingVal(false);
+                  }
+                }} className="flex flex-col gap-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      className="input input-bordered input-sm col-span-2"
+                      value={valForm.name}
+                      onChange={e => setValForm(f => ({ ...f, name: e.target.value }))}
+                      placeholder="显示名称（如：泪桥哥）"
+                      required
+                    />
+                    <input
+                      className="input input-bordered input-sm"
+                      value={valForm.riot_id}
+                      onChange={e => setValForm(f => ({ ...f, riot_id: e.target.value }))}
+                      placeholder="Riot ID（# 前的部分）"
+                      required
+                    />
+                    <input
+                      className="input input-bordered input-sm"
+                      value={valForm.tagline}
+                      onChange={e => setValForm(f => ({ ...f, tagline: e.target.value }))}
+                      placeholder="Tag（# 后的部分）"
+                      required
+                    />
+                    <select
+                      className="select select-bordered select-sm"
+                      value={valForm.region}
+                      onChange={e => setValForm(f => ({ ...f, region: e.target.value }))}
+                    >
+                      <option value="ap">AP（日服/亚太）</option>
+                      <option value="na">NA（北美）</option>
+                      <option value="eu">EU（欧洲）</option>
+                      <option value="kr">KR（韩服）</option>
+                    </select>
+                  </div>
+                  <button type="submit" className="btn btn-success btn-sm" disabled={addingVal}>
+                    {addingVal ? <span className="loading loading-spinner loading-xs"></span> : '添加玩家'}
+                  </button>
+                </form>
+
+                {valPlayers.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    <div className="text-xs text-base-content/50 mb-2">已有玩家</div>
+                    {valPlayers.map(p => (
+                      <div key={p.id} className="flex items-center justify-between p-2 rounded-lg bg-base-200">
+                        <div>
+                          <div className="font-semibold text-sm">🎯 {p.name}</div>
+                          <div className="text-xs text-base-content/50">{p.riot_id}#{p.tagline} · {p.tier || 'Unrated'} {p.rr}RR</div>
+                        </div>
+                        <button
+                          className="btn btn-xs btn-error btn-outline"
+                          onClick={async () => {
+                            if (!confirm(`确定删除 ${p.name}？`)) return;
+                            try {
+                              await deleteValPlayer(p.id, token);
+                              showMsg(`已删除 ${p.name}`);
+                              loadValPlayers();
+                            } catch (err) {
+                              showMsg(err.message, 'error');
+                            }
+                          }}
                         >
                           删除
                         </button>

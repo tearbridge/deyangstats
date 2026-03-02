@@ -6,6 +6,7 @@ const db = require('./db');
 const { fetchCharacterProfile, extractScore, extractWeeklyBest, SEASONS } = require('./raiderio');
 const { fetchRecentRuns, fetchWellness } = require('./intervals');
 const { startScheduler, refreshCharacter } = require('./scheduler');
+const { fetchPlayerMMR, fetchPlayerMatches, tierToElo } = require('./valorant');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -398,6 +399,140 @@ app.post('/api/runners/:id/report', requireAdmin, async (req, res) => {
     const { generateReport } = require('./summary');
     const report = await generateReport(runner.name, runs, wellness, dateRange);
     res.json({ report });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ===== VALORANT ROUTES =====
+
+// Helper to refresh a val player's MMR snapshot
+async function refreshValPlayer(player) {
+  try {
+    const data = await fetchPlayerMMR(player.region, player.riot_id, player.tagline);
+    const tier = data.current_data?.currenttierpatched || 'Unrated';
+    const rr = data.current_data?.ranking_in_tier || 0;
+    const elo = tierToElo(tier, rr);
+    db.prepare(`
+      INSERT INTO val_snapshots (player_id, tier, rr, elo, fetched_at, data)
+      VALUES (?, ?, ?, ?, datetime('now'), ?)
+    `).run(player.id, tier, rr, elo, JSON.stringify(data));
+  } catch (err) {
+    console.error(`[val] Failed to refresh ${player.riot_id}#${player.tagline}:`, err.message);
+  }
+}
+
+// GET /api/val/players
+app.get('/api/val/players', (req, res) => {
+  const players = db.prepare('SELECT * FROM val_players ORDER BY created_at ASC').all();
+  const result = players.map(p => {
+    const latest = db.prepare(`
+      SELECT * FROM val_snapshots WHERE player_id = ? ORDER BY fetched_at DESC LIMIT 1
+    `).get(p.id);
+    let parsedData = null;
+    if (latest?.data) { try { parsedData = JSON.parse(latest.data); } catch {} }
+    return {
+      id: p.id,
+      name: p.name,
+      riot_id: p.riot_id,
+      tagline: p.tagline,
+      region: p.region,
+      created_at: p.created_at,
+      tier: latest?.tier || 'Unrated',
+      rr: latest?.rr || 0,
+      elo: latest?.elo || 0,
+      fetched_at: latest?.fetched_at || null,
+      peak: parsedData?.highest_rank?.patched_tier || null,
+    };
+  });
+  result.sort((a, b) => b.elo - a.elo);
+  res.json(result);
+});
+
+// POST /api/val/players
+app.post('/api/val/players', requireAdmin, async (req, res) => {
+  const { name, riot_id, tagline, region = 'ap' } = req.body;
+  if (!name || !riot_id || !tagline) {
+    return res.status(400).json({ error: 'name, riot_id and tagline are required' });
+  }
+  const existing = db.prepare(
+    'SELECT id FROM val_players WHERE LOWER(riot_id) = LOWER(?) AND LOWER(tagline) = LOWER(?)'
+  ).get(riot_id, tagline);
+  if (existing) return res.status(409).json({ error: 'Player already exists' });
+
+  const result = db.prepare(
+    'INSERT INTO val_players (name, riot_id, tagline, region) VALUES (?, ?, ?, ?)'
+  ).run(name, riot_id, tagline, region);
+  const player = db.prepare('SELECT * FROM val_players WHERE id = ?').get(result.lastInsertRowid);
+  refreshValPlayer(player).catch(() => {});
+  res.status(201).json(player);
+});
+
+// DELETE /api/val/players/:id
+app.delete('/api/val/players/:id', requireAdmin, (req, res) => {
+  const player = db.prepare('SELECT * FROM val_players WHERE id = ?').get(req.params.id);
+  if (!player) return res.status(404).json({ error: 'Player not found' });
+  db.prepare('DELETE FROM val_snapshots WHERE player_id = ?').run(req.params.id);
+  db.prepare('DELETE FROM val_players WHERE id = ?').run(req.params.id);
+  res.json({ success: true });
+});
+
+// GET /api/val/players/:id
+app.get('/api/val/players/:id', async (req, res) => {
+  const player = db.prepare('SELECT * FROM val_players WHERE id = ?').get(req.params.id);
+  if (!player) return res.status(404).json({ error: 'Player not found' });
+
+  const latest = db.prepare(`
+    SELECT * FROM val_snapshots WHERE player_id = ? ORDER BY fetched_at DESC LIMIT 1
+  `).get(player.id);
+  let parsedData = null;
+  if (latest?.data) { try { parsedData = JSON.parse(latest.data); } catch {} }
+
+  let matches = [];
+  try {
+    const raw = await fetchPlayerMatches(player.region, player.riot_id, player.tagline, 5);
+    matches = raw.map(m => {
+      const me = m.players?.all_players?.find(p =>
+        p.name?.toLowerCase() === player.riot_id.toLowerCase() &&
+        p.tag?.toLowerCase() === player.tagline.toLowerCase()
+      );
+      return {
+        map: m.metadata?.map,
+        mode: m.metadata?.mode,
+        date: m.metadata?.game_start_patched,
+        won: m.teams?.red?.has_won === true || m.teams?.blue?.has_won === true
+          ? (me?.team?.toLowerCase() === 'red' ? m.teams?.red?.has_won : m.teams?.blue?.has_won)
+          : null,
+        agent: me?.character,
+        kills: me?.stats?.kills,
+        deaths: me?.stats?.deaths,
+        assists: me?.stats?.assists,
+        score: me?.stats?.score,
+      };
+    });
+  } catch (err) {
+    console.error('[val] match fetch error:', err.message);
+  }
+
+  res.json({
+    ...player,
+    tier: latest?.tier || 'Unrated',
+    rr: latest?.rr || 0,
+    elo: latest?.elo || 0,
+    fetched_at: latest?.fetched_at || null,
+    peak: parsedData?.highest_rank?.patched_tier || null,
+    mmr_history: parsedData?.by_season || null,
+    matches,
+  });
+});
+
+// POST /api/val/players/:id/refresh
+app.post('/api/val/players/:id/refresh', requireAdmin, async (req, res) => {
+  const player = db.prepare('SELECT * FROM val_players WHERE id = ?').get(req.params.id);
+  if (!player) return res.status(404).json({ error: 'Player not found' });
+  try {
+    await refreshValPlayer(player);
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

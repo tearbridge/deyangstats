@@ -53,6 +53,29 @@ db.exec(`
     generated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(runner_id, month)
   );
+
+  CREATE TABLE IF NOT EXISTS val_players (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    riot_id TEXT NOT NULL,
+    tagline TEXT NOT NULL,
+    region TEXT NOT NULL DEFAULT 'ap',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS val_snapshots (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    player_id INTEGER NOT NULL,
+    tier TEXT,
+    rank_in_tier INTEGER,
+    rr INTEGER,
+    elo INTEGER,
+    fetched_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    data TEXT,
+    FOREIGN KEY (player_id) REFERENCES val_players(id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_val_snapshots_player_id ON val_snapshots(player_id);
 `);
 
 module.exports = db;
