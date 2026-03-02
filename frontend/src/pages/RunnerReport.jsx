@@ -131,7 +131,9 @@ export default function RunnerReport() {
   };
 
   // Prepare chart data
-  const distanceData = data?.runs?.map(r => ({
+  const sortedRuns = data?.runs?.slice().sort((a, b) => a.date > b.date ? 1 : -1) || [];
+
+  const distanceData = sortedRuns.map(r => ({
     date: r.date,
     km: parseFloat((r.distance / 1000).toFixed(2)),
   })) || [];
@@ -143,13 +145,13 @@ export default function RunnerReport() {
     TSB: w.tsb ? parseFloat(w.tsb.toFixed(1)) : null,
   })) || [];
 
-  const paceData = data?.runs?.filter(r => r.pace).map(r => ({
+  const paceData = sortedRuns.filter(r => r.pace).map(r => ({
     date: r.date,
     pace: parseFloat(r.pace.toFixed(4)),
     name: r.name,
   })) || [];
 
-  const hrData = data?.runs?.filter(r => r.average_heartrate).map(r => ({
+  const hrData = sortedRuns.filter(r => r.average_heartrate).map(r => ({
     date: r.date,
     '平均心率': r.average_heartrate,
     '最高心率': r.max_heartrate,
