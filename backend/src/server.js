@@ -307,6 +307,65 @@ app.delete('/api/runners/:id', requireAdmin, (req, res) => {
   res.json({ success: true });
 });
 
+// GET /api/runners/:id/summary?month=2026-03 — 获取月度总结（有缓存直接返回）
+app.get('/api/runners/:id/summary', async (req, res) => {
+  const { id } = req.params;
+  const month = req.query.month || new Date().toISOString().slice(0, 7);
+
+  const runner = db.prepare('SELECT * FROM runners WHERE id = ?').get(id);
+  if (!runner) return res.status(404).json({ error: 'Runner not found' });
+
+  const cached = db.prepare('SELECT * FROM runner_summaries WHERE runner_id = ? AND month = ?').get(id, month);
+  if (cached) return res.json({ summary: cached.summary, generated_at: cached.generated_at, cached: true });
+
+  res.status(404).json({ error: 'No summary yet', month });
+});
+
+// POST /api/runners/:id/summary — 生成（或重新生成）月度总结
+app.post('/api/runners/:id/summary', requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const month = req.body.month || new Date().toISOString().slice(0, 7);
+
+  const runner = db.prepare('SELECT * FROM runners WHERE id = ?').get(id);
+  if (!runner) return res.status(404).json({ error: 'Runner not found' });
+
+  try {
+    const [year, mon] = month.split('-');
+    const oldest = `${year}-${mon}-01`;
+    const lastDay = new Date(parseInt(year), parseInt(mon), 0).getDate();
+    const newest = `${year}-${mon}-${lastDay}`;
+
+    const fetch = require('node-fetch');
+    const url = `https://intervals.icu/api/v1/athlete/${runner.athlete_id}/activities?oldest=${oldest}&newest=${newest}&limit=100`;
+    const apiRes = await fetch(url, {
+      headers: { Authorization: 'Basic ' + Buffer.from(`API_KEY:${runner.api_key}`).toString('base64') }
+    });
+    const allActivities = await apiRes.json();
+    const runs = allActivities
+      .filter(a => a.type === 'Run')
+      .map(r => ({
+        name: r.name,
+        date: r.start_date_local,
+        distance: r.distance,
+        moving_time: r.moving_time,
+        total_elevation_gain: r.total_elevation_gain,
+        pace: r.moving_time && r.distance ? (r.moving_time / r.distance) : null,
+      }));
+
+    const { generateMonthlySummary } = require('./summary');
+    const summary = await generateMonthlySummary(runner.name, runs);
+
+    db.prepare(`
+      INSERT OR REPLACE INTO runner_summaries (runner_id, month, summary, generated_at)
+      VALUES (?, ?, ?, datetime('now'))
+    `).run(id, month, summary);
+
+    res.json({ summary, generated_at: new Date().toISOString(), cached: false });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`[server] deyangstats backend running on port ${PORT}`);
   startScheduler();

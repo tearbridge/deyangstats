@@ -94,3 +94,20 @@ export async function refreshCharacter(id, adminToken) {
   if (!res.ok) throw new Error('Failed to refresh');
   return res.json();
 }
+
+export async function getRunnerSummary(id, month) {
+  const res = await fetch(`${BASE}/runners/${id}/summary?month=${month}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error('Failed to fetch summary');
+  return res.json();
+}
+
+export async function generateRunnerSummary(id, month, adminToken) {
+  const res = await fetch(`${BASE}/runners/${id}/summary`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Token': adminToken },
+    body: JSON.stringify({ month }),
+  });
+  if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed to generate'); }
+  return res.json();
+}

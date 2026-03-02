@@ -44,6 +44,15 @@ db.exec(`
     api_key TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
+
+  CREATE TABLE IF NOT EXISTS runner_summaries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    runner_id INTEGER NOT NULL,
+    month TEXT NOT NULL,
+    summary TEXT NOT NULL,
+    generated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(runner_id, month)
+  );
 `);
 
 module.exports = db;
