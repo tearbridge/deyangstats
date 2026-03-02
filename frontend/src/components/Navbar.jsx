@@ -10,7 +10,6 @@ export default function Navbar() {
           <Link to="/" className="flex items-center gap-2 text-xl font-wow text-primary hover:text-primary-focus transition-colors">
             <span className="text-2xl">⚔️</span>
             <span>德阳 Stats</span>
-            <span className="text-xs text-base-content/50 font-sans font-normal ml-1">M+ Tracker</span>
           </Link>
         </div>
         <div className="flex-none gap-2">
