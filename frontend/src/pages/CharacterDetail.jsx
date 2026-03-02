@@ -98,7 +98,7 @@ export default function CharacterDetail() {
           <div className="flex items-start gap-4">
             {character.profile?.thumbnail_url ? (
               <img
-                src={character.profile.thumbnail_url}
+                src={`/api/proxy/avatar?url=${encodeURIComponent(character.profile.thumbnail_url)}`}
                 alt={character.name}
                 className="w-20 h-20 rounded-2xl border-2 border-primary/30"
               />

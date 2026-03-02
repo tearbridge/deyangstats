@@ -30,7 +30,7 @@ export default function CharacterCard({ character, rank, season }) {
           <div className="avatar placeholder">
             {character.thumbnail_url ? (
               <div className="w-14 h-14 rounded-xl overflow-hidden">
-                <img src={character.thumbnail_url} alt={character.name} className="w-full h-full object-cover" />
+                <img src={`/api/proxy/avatar?url=${encodeURIComponent(character.thumbnail_url)}`} alt={character.name} className="w-full h-full object-cover" />
               </div>
             ) : (
               <div className="bg-neutral text-neutral-content rounded-xl w-14 h-14">

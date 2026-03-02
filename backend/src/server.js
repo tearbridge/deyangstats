@@ -403,6 +403,28 @@ app.post('/api/runners/:id/report', requireAdmin, async (req, res) => {
   }
 });
 
+// GET /api/proxy/avatar?url=... — proxy WoW avatar images
+app.get('/api/proxy/avatar', async (req, res) => {
+  const { url } = req.query;
+  if (!url || !url.startsWith('https://render.worldofwarcraft.com')) {
+    return res.status(400).json({ error: 'Invalid url' });
+  }
+  try {
+    const imgRes = await fetch(url, {
+      headers: {
+        'Referer': 'https://raider.io/',
+        'User-Agent': 'Mozilla/5.0 (compatible; deyangstats/1.0)',
+      }
+    });
+    if (!imgRes.ok) return res.status(imgRes.status).end();
+    res.set('Content-Type', imgRes.headers.get('content-type') || 'image/jpeg');
+    res.set('Cache-Control', 'public, max-age=86400');
+    imgRes.body.pipe(res);
+  } catch (err) {
+    res.status(500).end();
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`[server] deyangstats backend running on port ${PORT}`);
   startScheduler();
