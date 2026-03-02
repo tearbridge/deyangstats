@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import CharacterCard from './components/CharacterCard';
-import { getCharacters } from './api';
+import { getCharacters, getSeasons, getCharactersBySeason } from './api';
 
 export default function App() {
   const [characters, setCharacters] = useState([]);
+  const [seasons, setSeasons] = useState([]);
+  const [activeSeason, setActiveSeason] = useState(null); // null = current (from DB)
   const [loading, setLoading] = useState(true);
+  const [seasonLoading, setSeasonLoading] = useState(false);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
 
-  const fetchData = async () => {
+  const fetchCurrent = async () => {
     try {
       setError(null);
       const data = await getCharacters();
@@ -22,12 +25,43 @@ export default function App() {
     }
   };
 
+  const fetchSeason = async (seasonId) => {
+    setSeasonLoading(true);
+    setError(null);
+    try {
+      const data = await getCharactersBySeason(seasonId);
+      setCharacters(data);
+      setLastUpdated(new Date());
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSeasonLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetchData();
-    // Auto-refresh every 5 minutes
-    const interval = setInterval(fetchData, 5 * 60 * 1000);
+    // Load seasons list and current data in parallel
+    Promise.all([
+      getSeasons().then(setSeasons).catch(() => {}),
+      fetchCurrent(),
+    ]);
+    const interval = setInterval(() => {
+      if (!activeSeason) fetchCurrent();
+    }, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
+
+  const handleSeasonChange = (season) => {
+    setActiveSeason(season);
+    if (season === null) {
+      setLoading(true);
+      fetchCurrent();
+    } else {
+      fetchSeason(season.id);
+    }
+  };
+
+  const isLoadingAny = loading || seasonLoading;
 
   return (
     <div className="min-h-screen bg-base-300">
@@ -39,27 +73,51 @@ export default function App() {
         <p className="text-base-content/60">Mythic+ 大秘境追踪 · 数据来源 Raider.IO</p>
         {lastUpdated && (
           <p className="text-xs text-base-content/40 mt-1">
-            页面刷新于 {lastUpdated.toLocaleTimeString('zh-CN')}
+            更新于 {lastUpdated.toLocaleTimeString('zh-CN')}
           </p>
         )}
       </div>
 
       <div className="container mx-auto px-4 py-6 max-w-4xl">
-        {loading && (
+
+        {/* Season tabs */}
+        {seasons.length > 0 && (
+          <div className="tabs tabs-boxed bg-base-100 mb-6 flex-wrap gap-1 p-1">
+            <button
+              className={`tab ${activeSeason === null ? 'tab-active' : ''}`}
+              onClick={() => handleSeasonChange(null)}
+            >
+              当前赛季
+            </button>
+            {seasons.map(s => (
+              <button
+                key={s.id}
+                className={`tab ${activeSeason?.id === s.id ? 'tab-active' : ''}`}
+                onClick={() => handleSeasonChange(s)}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {isLoadingAny && (
           <div className="flex justify-center items-center py-20">
             <span className="loading loading-spinner loading-lg text-primary"></span>
-            <span className="ml-3 text-base-content/60">加载中...</span>
+            <span className="ml-3 text-base-content/60">
+              {seasonLoading ? '正在从 Raider.IO 拉取数据...' : '加载中...'}
+            </span>
           </div>
         )}
 
         {error && (
           <div className="alert alert-error mb-4">
             <span>⚠️ {error}</span>
-            <button className="btn btn-sm btn-ghost" onClick={fetchData}>重试</button>
+            <button className="btn btn-sm btn-ghost" onClick={() => activeSeason ? fetchSeason(activeSeason.id) : fetchCurrent()}>重试</button>
           </div>
         )}
 
-        {!loading && !error && characters.length === 0 && (
+        {!isLoadingAny && !error && characters.length === 0 && (
           <div className="text-center py-20 text-base-content/50">
             <p className="text-5xl mb-4">🗡️</p>
             <p className="text-lg">还没有角色</p>
@@ -69,7 +127,7 @@ export default function App() {
           </div>
         )}
 
-        {!loading && characters.length > 0 && (
+        {!isLoadingAny && characters.length > 0 && (
           <>
             {/* Stats summary */}
             <div className="stats stats-horizontal shadow w-full mb-6 bg-base-100">
@@ -88,6 +146,12 @@ export default function App() {
                 </div>
               </div>
             </div>
+
+            {activeSeason && (
+              <div className="alert alert-info mb-4 py-2">
+                <span className="text-sm">📜 正在查看历史赛季：<strong>{activeSeason.label}</strong></span>
+              </div>
+            )}
 
             {/* Character grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -8,9 +8,17 @@ const RAIDERIO_BASE = 'https://raider.io/api/v1';
  * @param {string} realm - e.g. '凤凰之神'
  * @param {string} name - character name
  */
-async function fetchCharacterProfile(region, realm, name) {
+const SEASONS = [
+  { id: 'season-tww-3', label: 'TWW 第三赛季', current: true },
+  { id: 'season-tww-2', label: 'TWW 第二赛季' },
+  { id: 'season-tww-1', label: 'TWW 第一赛季' },
+  { id: 'season-df-4', label: '龙土 第四赛季' },
+  { id: 'season-df-3', label: '龙土 第三赛季' },
+];
+
+async function fetchCharacterProfile(region, realm, name, season = 'current') {
   const fields = [
-    'mythic_plus_scores_by_season:current',
+    `mythic_plus_scores_by_season:${season}`,
     'mythic_plus_recent_runs',
     'mythic_plus_best_runs:all',
     'gear',
@@ -67,4 +75,4 @@ function extractWeeklyBest(profileData) {
   }, null);
 }
 
-module.exports = { fetchCharacterProfile, extractScore, extractWeeklyBest };
+module.exports = { fetchCharacterProfile, extractScore, extractWeeklyBest, SEASONS };

@@ -1,5 +1,17 @@
 const BASE = '/api';
 
+export async function getSeasons() {
+  const res = await fetch(`${BASE}/seasons`);
+  if (!res.ok) throw new Error('Failed to fetch seasons');
+  return res.json();
+}
+
+export async function getCharactersBySeason(season) {
+  const res = await fetch(`${BASE}/characters/season/${season}`);
+  if (!res.ok) throw new Error('Failed to fetch season data');
+  return res.json();
+}
+
 export async function getCharacters() {
   const res = await fetch(`${BASE}/characters`);
   if (!res.ok) throw new Error('Failed to fetch characters');

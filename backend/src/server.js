@@ -3,7 +3,7 @@ require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const express = require('express');
 const cors = require('cors');
 const db = require('./db');
-const { fetchCharacterProfile, extractScore, extractWeeklyBest } = require('./raiderio');
+const { fetchCharacterProfile, extractScore, extractWeeklyBest, SEASONS } = require('./raiderio');
 const { startScheduler, refreshCharacter } = require('./scheduler');
 
 const app = express();
@@ -67,6 +67,60 @@ app.get('/api/characters', (req, res) => {
   result.sort((a, b) => b.score - a.score);
 
   res.json(result);
+});
+
+// GET /api/seasons — list available seasons
+app.get('/api/seasons', (req, res) => {
+  res.json(SEASONS);
+});
+
+// GET /api/characters/season/:season — fetch all characters for a specific season (live from Raider.IO)
+app.get('/api/characters/season/:season', async (req, res) => {
+  const { season } = req.params;
+  const validSeason = SEASONS.find(s => s.id === season);
+  if (!validSeason) {
+    return res.status(400).json({ error: 'Invalid season' });
+  }
+
+  const characters = db.prepare('SELECT * FROM characters ORDER BY created_at ASC').all();
+
+  const results = await Promise.all(characters.map(async char => {
+    try {
+      const data = await fetchCharacterProfile(char.region, char.realm, char.name, season);
+      const score = data.mythic_plus_scores_by_season?.[0]?.scores?.all || 0;
+      const weeklyBest = extractWeeklyBest(data);
+      return {
+        id: char.id,
+        name: char.name,
+        realm: char.realm,
+        region: char.region,
+        score,
+        class: data.class || null,
+        active_spec_name: data.active_spec_name || null,
+        thumbnail_url: data.thumbnail_url || null,
+        profile_url: data.profile_url || null,
+        weekly_best: weeklyBest ? {
+          dungeon: weeklyBest.dungeon?.name,
+          mythic_level: weeklyBest.mythic_level,
+          score: weeklyBest.score,
+          completed_at: weeklyBest.completed_at,
+        } : null,
+        scores_by_season: data.mythic_plus_scores_by_season?.[0]?.scores || null,
+      };
+    } catch (err) {
+      return {
+        id: char.id,
+        name: char.name,
+        realm: char.realm,
+        region: char.region,
+        score: 0,
+        error: err.message,
+      };
+    }
+  }));
+
+  results.sort((a, b) => b.score - a.score);
+  res.json(results);
 });
 
 // POST /api/characters — add a character
