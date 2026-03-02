@@ -17,7 +17,7 @@ export default function Navbar() {
             to="/"
             className={`btn btn-sm btn-ghost ${location.pathname === '/' ? 'btn-active' : ''}`}
           >
-            🏆 排行榜
+            ⚔️ 魔兽世界
           </Link>
           <Link
             to="/marathon"
