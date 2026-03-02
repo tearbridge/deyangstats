@@ -133,11 +133,16 @@ export default function CharacterDetail() {
           {/* Score breakdown */}
           {Object.keys(scores).length > 0 && (
             <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {Object.entries(scores).map(([role, score]) => (
-                score > 0 && (
-                  <div key={role} className="bg-base-300 rounded-lg p-2 text-center">
-                    <div className="text-xs text-base-content/50 capitalize">{role}</div>
-                    <div className="font-bold text-sm">{typeof score === 'number' ? score.toFixed(1) : score}</div>
+              {[
+                { key: 'all', label: '综合' },
+                { key: 'dps', label: '输出' },
+                { key: 'healer', label: '治疗' },
+                { key: 'tank', label: '坦克' },
+              ].map(({ key, label }) => (
+                scores[key] > 0 && (
+                  <div key={key} className="bg-base-300 rounded-lg p-2 text-center">
+                    <div className="text-xs text-base-content/50">{label}</div>
+                    <div className="font-bold text-sm">{scores[key].toFixed(1)}</div>
                   </div>
                 )
               ))}
@@ -153,7 +158,7 @@ export default function CharacterDetail() {
             <div className="card-body p-4">
               <h2 className="card-title text-base font-wow">🏆 本赛季最高记录</h2>
               {bestRuns.length === 0 ? (
-                <p className="text-base-content/50 text-sm">{season ? 'Raider.IO 不提供历史赛季跑本记录' : '暂无记录'}</p>
+                <p className="text-base-content/50 text-sm">{season ? '历史赛季地图记录不开放，仅显示总评分' : '暂无记录'}</p>
               ) : (
                 <div className="space-y-2 max-h-80 overflow-y-auto">
                   {bestRuns.slice(0, 20).map((run, i) => (
@@ -180,7 +185,7 @@ export default function CharacterDetail() {
             <div className="card-body p-4">
               <h2 className="card-title text-base font-wow">⏱️ 最近跑本</h2>
               {recentRuns.length === 0 ? (
-                <p className="text-base-content/50 text-sm">{season ? 'Raider.IO 不提供历史赛季跑本记录' : '暂无记录'}</p>
+                <p className="text-base-content/50 text-sm">{season ? '历史赛季跑本记录不开放' : '暂无记录'}</p>
               ) : (
                 <div className="space-y-2 max-h-80 overflow-y-auto">
                   {recentRuns.slice(0, 15).map((run, i) => (
