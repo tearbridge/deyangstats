@@ -82,7 +82,7 @@ export default function App() {
 
         {/* Season tabs */}
         {seasons.length > 0 && (
-          <div className="tabs tabs-boxed bg-base-100 mb-6 flex-wrap gap-1 p-1">
+          <div className="tabs tabs-boxed bg-base-100 mb-6 p-1 overflow-x-auto flex-nowrap scrollbar-none" style={{WebkitOverflowScrolling: 'touch'}}>
             <button
               className={`tab ${activeSeason === null ? 'tab-active' : ''}`}
               onClick={() => handleSeasonChange(null)}
