@@ -130,3 +130,4 @@ DB_PATH=../data/deyangstats.db  # 可选，默认 data/deyangstats.db
 - 服务启动后 5 秒会触发一次初始拉取
 - 管理页添加角色后立即触发后台拉取
 - 历史快照保存在 SQLite，可用于绘制评分趋势图
+# CI/CD test Sun Mar  1 06:36:16 PM PST 2026
