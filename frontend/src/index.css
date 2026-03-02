@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-base-300 text-base-content min-h-screen;
+  }
+}
+
+@layer utilities {
+  .font-wow {
+    font-family: 'Cinzel', serif;
+  }
+}
