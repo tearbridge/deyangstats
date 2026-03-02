@@ -9,11 +9,9 @@ const RAIDERIO_BASE = 'https://raider.io/api/v1';
  * @param {string} name - character name
  */
 const SEASONS = [
-  { id: 'season-tww-3', label: 'TWW 第三赛季', current: true },
-  { id: 'season-tww-2', label: 'TWW 第二赛季' },
-  { id: 'season-tww-1', label: 'TWW 第一赛季' },
-  { id: 'season-df-4', label: '龙土 第四赛季' },
-  { id: 'season-df-3', label: '龙土 第三赛季' },
+  { id: 'season-tww-3', label: 'TWW Season 3', current: true },
+  { id: 'season-tww-2', label: 'TWW Season 2' },
+  { id: 'season-tww-1', label: 'TWW Season 1' },
 ];
 
 async function fetchCharacterProfile(region, realm, name, season = 'current') {
