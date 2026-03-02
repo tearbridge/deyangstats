@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
-import { getRunners, getRunnerSummary, generateRunnerSummary } from '../api';
+import { getRunners } from '../api';
 
 const RACE_DATE = new Date('2026-03-29T08:00:00+08:00');
 
@@ -60,34 +61,10 @@ function TsbBadge({ tsb }) {
   return <span className={`badge badge-sm ${color}`}>TSB {tsb > 0 ? '+' : ''}{tsb.toFixed(1)}</span>;
 }
 
-function RunnerCard({ runner, adminToken }) {
+function RunnerCard({ runner }) {
+  const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
-  const [summary, setSummary] = useState(null);
-  const [summaryLoading, setSummaryLoading] = useState(false);
-  const [summaryError, setSummaryError] = useState(null);
-  const currentMonth = new Date().toISOString().slice(0, 7);
   const lastRun = runner.recent_runs?.[0];
-
-  useEffect(() => {
-    if (!runner.id) return;
-    getRunnerSummary(runner.id, currentMonth).then(data => {
-      if (data) setSummary(data);
-    }).catch(() => {});
-  }, [runner.id]);
-
-  const handleGenerate = async (e) => {
-    e.stopPropagation();
-    setSummaryLoading(true);
-    setSummaryError(null);
-    try {
-      const data = await generateRunnerSummary(runner.id, currentMonth, adminToken);
-      setSummary(data);
-    } catch (err) {
-      setSummaryError(err.message);
-    } finally {
-      setSummaryLoading(false);
-    }
-  };
 
   return (
     <div
@@ -154,39 +131,12 @@ function RunnerCard({ runner, adminToken }) {
 
             {expanded && (
               <div className="mt-4 border-t border-base-200 pt-3" onClick={e => e.stopPropagation()}>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-xs font-semibold text-base-content/60">📊 {currentMonth} 月度训练总结</div>
-                  {adminToken && (
-                    <button
-                      className="btn btn-xs btn-outline btn-success"
-                      onClick={handleGenerate}
-                      disabled={summaryLoading}
-                    >
-                      {summaryLoading ? '生成中...' : summary ? '重新生成' : '生成本月总结'}
-                    </button>
-                  )}
-                </div>
-                {summaryError && (
-                  <div className="text-xs text-error mt-1">⚠️ {summaryError}</div>
-                )}
-                {summaryLoading && (
-                  <div className="flex items-center gap-2 text-xs text-base-content/50 mt-2">
-                    <span className="loading loading-spinner loading-xs"></span>
-                    正在调用 AI 生成总结...
-                  </div>
-                )}
-                {summary && !summaryLoading && (
-                  <div className="mt-2 p-3 rounded-lg bg-base-200 text-sm whitespace-pre-wrap leading-relaxed">
-                    {summary.summary}
-                    <div className="text-xs text-base-content/40 mt-2">
-                      生成于 {summary.generated_at?.slice(0, 16).replace('T', ' ')}
-                      {summary.cached && ' · 缓存'}
-                    </div>
-                  </div>
-                )}
-                {!summary && !summaryLoading && !adminToken && (
-                  <div className="text-xs text-base-content/40 mt-1">暂无总结，管理员可在下方输入 Token 后生成</div>
-                )}
+                <button
+                  className="btn btn-sm btn-outline btn-success w-full"
+                  onClick={() => navigate(`/runner/${runner.id}/report`)}
+                >
+                  📊 查看详细报告
+                </button>
               </div>
             )}
           </>
@@ -200,8 +150,6 @@ export default function Marathon() {
   const [runners, setRunners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [adminToken, setAdminToken] = useState(() => localStorage.getItem('adminToken') || '');
-  const [showTokenInput, setShowTokenInput] = useState(false);
 
   useEffect(() => {
     getRunners()
@@ -231,28 +179,7 @@ export default function Marathon() {
         {/* 跑者列表 */}
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-success">🏃 训练排行</h2>
-          <button
-            className="btn btn-xs btn-ghost text-base-content/40"
-            onClick={() => setShowTokenInput(v => !v)}
-          >
-            🔑 {adminToken ? '已设置' : '管理员'}
-          </button>
         </div>
-        {showTokenInput && (
-          <div className="mb-4 flex gap-2">
-            <input
-              type="password"
-              className="input input-sm input-bordered flex-1"
-              placeholder="Admin Token"
-              value={adminToken}
-              onChange={e => {
-                setAdminToken(e.target.value);
-                localStorage.setItem('adminToken', e.target.value);
-              }}
-            />
-            <button className="btn btn-sm btn-ghost" onClick={() => setShowTokenInput(false)}>✓</button>
-          </div>
-        )}
 
         {loading && (
           <div className="flex justify-center py-12">
@@ -281,7 +208,7 @@ export default function Marathon() {
                 {i + 1}
               </div>
               <div className="flex-1">
-                <RunnerCard runner={runner} adminToken={adminToken} />
+                <RunnerCard runner={runner} />
               </div>
             </div>
           ))}

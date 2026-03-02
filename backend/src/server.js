@@ -366,6 +366,43 @@ app.post('/api/runners/:id/summary', requireAdmin, async (req, res) => {
   }
 });
 
+// GET /api/runners/:id/report-data?oldest=&newest= — 返回时间段内的训练+wellness原始数据
+app.get('/api/runners/:id/report-data', async (req, res) => {
+  const runner = db.prepare('SELECT * FROM runners WHERE id = ?').get(req.params.id);
+  if (!runner) return res.status(404).json({ error: 'Runner not found' });
+
+  const oldest = req.query.oldest || new Date(Date.now() - 30*86400000).toISOString().split('T')[0];
+  const newest = req.query.newest || new Date().toISOString().split('T')[0];
+
+  try {
+    const { fetchActivitiesRange, fetchWellnessRange } = require('./intervals');
+    const [runs, wellness] = await Promise.all([
+      fetchActivitiesRange(runner.athlete_id, runner.api_key, oldest, newest),
+      fetchWellnessRange(runner.athlete_id, runner.api_key, oldest, newest),
+    ]);
+    res.json({ runs, wellness, oldest, newest });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/runners/:id/report — 生成AI报告（需admin）
+app.post('/api/runners/:id/report', requireAdmin, async (req, res) => {
+  const runner = db.prepare('SELECT * FROM runners WHERE id = ?').get(req.params.id);
+  if (!runner) return res.status(404).json({ error: 'Runner not found' });
+
+  const { oldest, newest, runs, wellness } = req.body;
+  const dateRange = `${oldest} 至 ${newest}`;
+
+  try {
+    const { generateReport } = require('./summary');
+    const report = await generateReport(runner.name, runs, wellness, dateRange);
+    res.json({ report });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`[server] deyangstats backend running on port ${PORT}`);
   startScheduler();
