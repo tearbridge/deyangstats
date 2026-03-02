@@ -276,7 +276,7 @@ app.get('/api/runners', async (req, res) => {
           date: r.start_date_local,
           distance: r.distance,
           moving_time: r.moving_time,
-          pace: r.moving_time && r.distance ? (r.moving_time / (r.distance / 1000)) : null,
+          pace: r.moving_time && r.distance ? (r.moving_time / r.distance) : null,
           total_elevation_gain: r.total_elevation_gain,
         })),
         weekly_distance: weeklyDistance,
