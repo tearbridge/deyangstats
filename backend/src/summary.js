@@ -1,7 +1,8 @@
-const Anthropic = require('@anthropic-ai/sdk');
+const OpenAI = require('openai');
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+const client = new OpenAI({
+  apiKey: process.env.KIMI_API_KEY,
+  baseURL: 'https://api.moonshot.cn/v1',
 });
 
 async function generateMonthlySummary(runnerName, runs) {
@@ -35,13 +36,13 @@ ${runsText || '本月暂无训练记录'}
 
 请包含：1) 本月训练量评价 2) 配速趋势分析 3) 针对马拉松备战的建议。语气专业但友好，像教练点评一样。`;
 
-  const message = await client.messages.create({
-    model: 'claude-haiku-4-5',
+  const message = await client.chat.completions.create({
+    model: 'moonshot-v1-8k',
     max_tokens: 512,
     messages: [{ role: 'user', content: prompt }],
   });
 
-  return message.content[0].text;
+  return message.choices[0].message.content;
 }
 
 module.exports = { generateMonthlySummary };
