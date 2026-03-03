@@ -41,7 +41,8 @@ function getRankColor(tier) {
 
 function timeAgo(dateStr) {
   if (!dateStr) return null;
-  const diff = Date.now() - new Date(dateStr).getTime();
+  const diff = Date.now() - new Date(dateStr + 'Z').getTime();
+  if (diff < 0) return '刚刚';
   const m = Math.floor(diff / 60000);
   if (m < 60) return `${m}分钟前`;
   const h = Math.floor(m / 60);
