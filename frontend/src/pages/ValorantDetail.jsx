@@ -74,7 +74,9 @@ export default function ValorantDetail() {
     </div>
   );
 
-  const cardUrl = player.account?.card?.wide || player.account?.card?.large || null;
+  const proxyCard = (url) => url ? `/api/proxy/val-card?url=${encodeURIComponent(url)}` : null;
+  const cardUrl = proxyCard(player.account?.card?.wide || player.account?.card?.large || null);
+  const avatarUrl = proxyCard(player.account?.card?.small || null);
 
   return (
     <div className="min-h-screen bg-base-300">
@@ -91,9 +93,9 @@ export default function ValorantDetail() {
           <div className="container mx-auto max-w-2xl">
             <Link to="/valorant" className="btn btn-ghost btn-sm mb-3">← 返回</Link>
             <div className="flex items-center gap-4">
-              {player.account?.card?.small && (
+              {avatarUrl && (
                 <img
-                  src={player.account.card.small}
+                  src={avatarUrl}
                   alt="avatar"
                   className="w-16 h-16 rounded-lg border-2 border-primary shadow-lg shrink-0"
                 />
