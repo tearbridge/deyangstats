@@ -608,10 +608,12 @@ app.get('/api/proxy/val-card', async (req, res) => {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; deyangstats/1.0)' }
     });
     if (!imgRes.ok) return res.status(imgRes.status).end();
+    const buf = Buffer.from(await imgRes.arrayBuffer());
     res.set('Content-Type', imgRes.headers.get('content-type') || 'image/png');
     res.set('Cache-Control', 'public, max-age=86400');
-    imgRes.body.pipe(res);
+    res.send(buf);
   } catch (err) {
+    console.error('[proxy/val-card]', err.message);
     res.status(500).end();
   }
 });
@@ -630,9 +632,10 @@ app.get('/api/proxy/avatar', async (req, res) => {
       }
     });
     if (!imgRes.ok) return res.status(imgRes.status).end();
+    const buf = Buffer.from(await imgRes.arrayBuffer());
     res.set('Content-Type', imgRes.headers.get('content-type') || 'image/jpeg');
     res.set('Cache-Control', 'public, max-age=86400');
-    imgRes.body.pipe(res);
+    res.send(buf);
   } catch (err) {
     res.status(500).end();
   }
