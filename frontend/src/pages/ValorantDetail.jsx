@@ -82,13 +82,12 @@ export default function ValorantDetail() {
       <Navbar />
 
       {/* Header with card banner */}
-      <div className="relative">
+      <div className="relative overflow-hidden">
         {cardUrl && (
-          <div className="w-full h-32 overflow-hidden">
-            <img src={cardUrl} alt="player card" className="w-full object-cover object-center opacity-40" />
-          </div>
+          <img src={cardUrl} alt="" aria-hidden="true"
+            className="absolute inset-0 w-full h-full object-cover object-center opacity-30 pointer-events-none select-none" />
         )}
-        <div className={`${cardUrl ? 'absolute bottom-0 left-0 right-0' : ''} bg-gradient-to-b from-transparent to-base-300 py-6 px-4`}>
+        <div className="relative z-10 bg-gradient-to-b from-transparent to-base-300 py-6 px-4">
           <div className="container mx-auto max-w-2xl">
             <Link to="/valorant" className="btn btn-ghost btn-sm mb-3">← 返回</Link>
             <div className="flex items-center gap-4">
