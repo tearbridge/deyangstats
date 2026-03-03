@@ -6,32 +6,40 @@ function henrikHeaders() {
   return h;
 }
 
-async function fetchPlayerMMR(region, riotId, tagline) {
-  const url = `${HENRIK_BASE}/valorant/v2/mmr/${region}/${encodeURIComponent(riotId)}/${encodeURIComponent(tagline)}`;
-  const res = await fetch(url, {
-    headers: henrikHeaders()
-  });
+async function henrikGet(url) {
+  const res = await fetch(url, { headers: henrikHeaders() });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.message || `Henrik API error ${res.status}`);
+    const msg = body.errors?.[0]?.message || body.message || `Henrik API error ${res.status}`;
+    throw new Error(msg);
   }
   const json = await res.json();
-  if (json.status !== 200) throw new Error(json.message || 'Henrik API error');
+  if (json.status !== 200) {
+    const msg = json.errors?.[0]?.message || json.message || 'Henrik API error';
+    throw new Error(msg);
+  }
   return json.data;
+}
+
+async function fetchPlayerMMR(region, riotId, tagline) {
+  const url = `${HENRIK_BASE}/valorant/v2/mmr/${region}/${encodeURIComponent(riotId)}/${encodeURIComponent(tagline)}`;
+  return henrikGet(url);
 }
 
 async function fetchPlayerMatches(region, riotId, tagline, size = 5) {
   const url = `${HENRIK_BASE}/valorant/v3/matches/${region}/${encodeURIComponent(riotId)}/${encodeURIComponent(tagline)}?size=${size}`;
-  const res = await fetch(url, {
-    headers: henrikHeaders()
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.message || `Henrik API error ${res.status}`);
-  }
-  const json = await res.json();
-  if (json.status !== 200) throw new Error(json.message || 'Henrik API error');
-  return json.data || [];
+  return henrikGet(url) || [];
+}
+
+async function fetchPlayerAccount(riotId, tagline) {
+  const url = `${HENRIK_BASE}/valorant/v1/account/${encodeURIComponent(riotId)}/${encodeURIComponent(tagline)}`;
+  return henrikGet(url);
+}
+
+async function fetchPlayerMMRHistory(region, riotId, tagline, size = 10) {
+  const url = `${HENRIK_BASE}/valorant/v1/mmr-history/${region}/${encodeURIComponent(riotId)}/${encodeURIComponent(tagline)}`;
+  const data = await henrikGet(url);
+  return (Array.isArray(data) ? data : []).slice(0, size);
 }
 
 const TIER_ORDER = [
@@ -52,4 +60,4 @@ function tierToElo(tier, rr = 0) {
   return idx * 100 + (rr || 0);
 }
 
-module.exports = { fetchPlayerMMR, fetchPlayerMatches, tierToElo };
+module.exports = { fetchPlayerMMR, fetchPlayerMatches, fetchPlayerAccount, fetchPlayerMMRHistory, tierToElo };

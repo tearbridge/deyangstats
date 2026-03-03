@@ -6,7 +6,7 @@ const db = require('./db');
 const { fetchCharacterProfile, extractScore, extractWeeklyBest, SEASONS } = require('./raiderio');
 const { fetchRecentRuns, fetchWellness } = require('./intervals');
 const { startScheduler, refreshCharacter } = require('./scheduler');
-const { fetchPlayerMMR, fetchPlayerMatches, tierToElo } = require('./valorant');
+const { fetchPlayerMMR, fetchPlayerMatches, fetchPlayerAccount, fetchPlayerMMRHistory, tierToElo } = require('./valorant');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -488,31 +488,88 @@ app.get('/api/val/players/:id', async (req, res) => {
   let parsedData = null;
   if (latest?.data) { try { parsedData = JSON.parse(latest.data); } catch {} }
 
+  // Parallel fetch: matches + account info + MMR history
   let matches = [];
-  try {
-    const raw = await fetchPlayerMatches(player.region, player.riot_id, player.tagline, 5);
-    matches = raw.map(m => {
-      const me = m.players?.all_players?.find(p =>
-        p.name?.toLowerCase() === player.riot_id.toLowerCase() &&
-        p.tag?.toLowerCase() === player.tagline.toLowerCase()
-      );
-      return {
-        map: m.metadata?.map,
-        mode: m.metadata?.mode,
-        date: m.metadata?.game_start_patched,
-        won: m.teams?.red?.has_won === true || m.teams?.blue?.has_won === true
-          ? (me?.team?.toLowerCase() === 'red' ? m.teams?.red?.has_won : m.teams?.blue?.has_won)
-          : null,
-        agent: me?.character,
-        kills: me?.stats?.kills,
-        deaths: me?.stats?.deaths,
-        assists: me?.stats?.assists,
-        score: me?.stats?.score,
+  let account = null;
+  let mmr_history_recent = [];
+
+  await Promise.allSettled([
+    fetchPlayerMatches(player.region, player.riot_id, player.tagline, 5).then(raw => {
+      matches = raw.map(m => {
+        const me = m.players?.all_players?.find(p =>
+          p.name?.toLowerCase() === player.riot_id.toLowerCase() &&
+          p.tag?.toLowerCase() === player.tagline.toLowerCase()
+        );
+
+        // Headshot %
+        const hs = me?.stats?.headshots || 0;
+        const bs = me?.stats?.bodyshots || 0;
+        const ls = me?.stats?.legshots || 0;
+        const total_shots = hs + bs + ls;
+        const hs_pct = total_shots > 0 ? Math.round(hs / total_shots * 100) : null;
+
+        // Plants & defuses from round data
+        let plants = 0, defuses = 0;
+        if (Array.isArray(m.rounds)) {
+          for (const round of m.rounds) {
+            if (round.plant_events?.planted_by?.puuid && me?.puuid &&
+                round.plant_events.planted_by.puuid === me.puuid) plants++;
+            if (round.defuse_events?.defused_by?.puuid && me?.puuid &&
+                round.defuse_events.defused_by.puuid === me.puuid) defuses++;
+          }
+        }
+
+        // Team MVP (highest score on own team)
+        const myTeam = me?.team?.toLowerCase();
+        const teamPlayers = m.players?.all_players?.filter(p => p.team?.toLowerCase() === myTeam) || [];
+        const topScore = Math.max(...teamPlayers.map(p => p.stats?.score || 0));
+        const mvp = me && topScore > 0 && (me.stats?.score || 0) >= topScore;
+
+        // Win/loss
+        const won = me?.team
+          ? (m.teams?.[me.team.toLowerCase()]?.has_won ?? null)
+          : null;
+
+        return {
+          map: m.metadata?.map,
+          mode: m.metadata?.mode,
+          date: m.metadata?.game_start_patched,
+          won,
+          agent: me?.character,
+          kills: me?.stats?.kills,
+          deaths: me?.stats?.deaths,
+          assists: me?.stats?.assists,
+          score: me?.stats?.score,
+          headshots: hs,
+          bodyshots: bs,
+          legshots: ls,
+          hs_pct,
+          damage_made: me?.damage_made ?? null,
+          plants,
+          defuses,
+          mvp: mvp || false,
+        };
+      });
+    }).catch(err => console.error('[val] match fetch error:', err.message)),
+
+    fetchPlayerAccount(player.riot_id, player.tagline).then(data => {
+      account = {
+        level: data.account_level,
+        card: data.card,
+        last_update: data.last_update,
       };
-    });
-  } catch (err) {
-    console.error('[val] match fetch error:', err.message);
-  }
+    }).catch(err => console.error('[val] account fetch error:', err.message)),
+
+    fetchPlayerMMRHistory(player.region, player.riot_id, player.tagline, 10).then(data => {
+      mmr_history_recent = data.map(h => ({
+        tier: h.currenttierpatched,
+        rr: h.ranking_in_tier,
+        change: h.mmr_change_to_last_game,
+        map: h.map?.name || h.map,
+        date: h.date_raw,
+      }));
+    }).catch(err => console.error('[val] mmr-history fetch error:', err.message)),
+  ]);
 
   res.json({
     ...player,
@@ -522,6 +579,8 @@ app.get('/api/val/players/:id', async (req, res) => {
     fetched_at: latest?.fetched_at || null,
     peak: parsedData?.highest_rank?.patched_tier || null,
     mmr_history: parsedData?.by_season || null,
+    account,
+    mmr_history_recent,
     matches,
   });
 });
