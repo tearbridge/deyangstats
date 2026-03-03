@@ -624,19 +624,33 @@ app.get('/api/proxy/avatar', async (req, res) => {
   if (!url || !url.startsWith('https://render.worldofwarcraft.com')) {
     return res.status(400).json({ error: 'Invalid url' });
   }
-  try {
-    const imgRes = await fetch(url, {
+  const fetchImg = async (target) => {
+    const r = await fetch(target, {
+      redirect: 'follow',
       headers: {
         'Referer': 'https://raider.io/',
         'User-Agent': 'Mozilla/5.0 (compatible; deyangstats/1.0)',
       }
     });
-    if (!imgRes.ok) return res.status(imgRes.status).end();
+    return r;
+  };
+  try {
+    let imgRes = await fetchImg(url);
+    // If main avatar URL fails (Blizzard CDN 403), fall back to ?alt= param
+    if (!imgRes.ok) {
+      const altPath = new URL(url).searchParams.get('alt');
+      if (altPath) {
+        const altUrl = `https://render.worldofwarcraft.com${altPath}`;
+        imgRes = await fetchImg(altUrl);
+      }
+      if (!imgRes.ok) return res.status(imgRes.status).end();
+    }
     const buf = Buffer.from(await imgRes.arrayBuffer());
     res.set('Content-Type', imgRes.headers.get('content-type') || 'image/jpeg');
     res.set('Cache-Control', 'public, max-age=86400');
     res.send(buf);
   } catch (err) {
+    console.error('[proxy/avatar]', err.message);
     res.status(500).end();
   }
 });
