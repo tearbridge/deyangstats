@@ -1,9 +1,15 @@
 const HENRIK_BASE = 'https://api.henrikdev.xyz';
 
+function henrikHeaders() {
+  const h = { 'User-Agent': 'deyangstats/1.0' };
+  if (process.env.HENRIK_API_KEY) h['Authorization'] = process.env.HENRIK_API_KEY;
+  return h;
+}
+
 async function fetchPlayerMMR(region, riotId, tagline) {
   const url = `${HENRIK_BASE}/valorant/v2/mmr/${region}/${encodeURIComponent(riotId)}/${encodeURIComponent(tagline)}`;
   const res = await fetch(url, {
-    headers: { 'User-Agent': 'deyangstats/1.0' }
+    headers: henrikHeaders()
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -17,7 +23,7 @@ async function fetchPlayerMMR(region, riotId, tagline) {
 async function fetchPlayerMatches(region, riotId, tagline, size = 5) {
   const url = `${HENRIK_BASE}/valorant/v3/matches/${region}/${encodeURIComponent(riotId)}/${encodeURIComponent(tagline)}?size=${size}`;
   const res = await fetch(url, {
-    headers: { 'User-Agent': 'deyangstats/1.0' }
+    headers: henrikHeaders()
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
