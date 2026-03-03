@@ -74,9 +74,8 @@ export default function ValorantDetail() {
     </div>
   );
 
-  const proxyCard = (url) => url ? `/api/proxy/val-card?url=${encodeURIComponent(url)}` : null;
-  const cardUrl = proxyCard(player.account?.card?.wide || player.account?.card?.large || null);
-  const avatarUrl = proxyCard(player.account?.card?.small || null);
+  const cardUrl = player.account?.card?.wide || player.account?.card?.large || null;
+  const avatarUrl = player.account?.card?.small || null;
 
   return (
     <div className="min-h-screen bg-base-300">
