@@ -151,8 +151,8 @@ async function fetchReportData(code) {
   }
 
   // Parse DPS data
-  const dpsEntries = tables.reportData.report.dpsTable?.data?.entries || [];
-  const healEntries = tables.reportData.report.healTable?.data?.entries || [];
+  const dpsEntries = tables.reportData.report.dpsTable?.entries || [];
+  const healEntries = tables.reportData.report.healTable?.entries || [];
 
   const duration = (keystoneFight.endTime - keystoneFight.startTime) / 1000; // seconds
 
@@ -254,6 +254,8 @@ async function analyzeReport(reportData) {
 
   const prompt = `你是一个魔兽世界大秘境复盘助手，风格幽默毒舌但有建设性，像群友互相吐槽那种，说中文。
 
+⚠️ 重要：点评时必须直接使用下面每个人的真实角色名，不能用"DPS最高的那个"这种描述，必须点名道姓。
+
 本次大秘境数据：
 副本：${reportData.dungeon}
 钥石等级：+${reportData.keyLevel}
@@ -261,19 +263,19 @@ async function analyzeReport(reportData) {
 用时：${reportData.duration}（${timerStr}）
 平均装等：${reportData.avgIlvl || '未知'}
 
-队员输出：
+队员输出（按角色名列出）：
 ${playersText}
 
 死亡记录：
 ${deathsText}
 
-请从以下角度进行点评：
-1. 谁是今晚最大的功臣 / 拖累（结合DPS和死亡情况）
-2. timer的关键因素（死亡损失、输出贡献等）
-3. 每个人一句简短点评（要有个性，不要全是表扬）
-4. 最后一句总结
+请从以下角度进行点评（每条必须点名）：
+1. 谁是今晚最大的功臣 / 拖累（直接说名字，结合DPS和死亡情况）
+2. timer的关键因素
+3. 每个人一句点评（必须每人都有，写上名字，要有个性，不要千篇一律）
+4. 一句话总结
 
-语气要像群友聊天，可以夸可以骂，但别太过分。200-300字即可。`;
+语气像群友聊天，可以夸可以骂，但别太过分。200-300字即可。`;
 
   const response = await kimi.chat.completions.create({
     model: 'moonshot-v1-8k',
