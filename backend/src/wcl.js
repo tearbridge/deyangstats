@@ -90,7 +90,6 @@ async function fetchReportData(code) {
           }
           masterData {
             actors(type: "Player") { id name subType server }
-            abilities { gameID name type }
           }
         }
       }
@@ -109,9 +108,7 @@ async function fetchReportData(code) {
   const actorMap = {};
   for (const actor of report.masterData.actors) actorMap[actor.id] = actor;
 
-  // Build ability name map
-  const abilityNameMap = {};
-  for (const ab of (report.masterData.abilities || [])) abilityNameMap[ab.gameID] = ab.name;
+
 
   // Step 2: DPS table + heal table + playerDetails + deaths (all in one query)
   const mainData = await gqlQuery(`
@@ -169,21 +166,25 @@ async function fetchReportData(code) {
   const potionMap = {};
   // Count potion usage from Items events (actual item use, not buff application)
   const potionEvts = r.potionEvents?.data || [];
-  // Build potion ability ID set using masterData ability names
-  const potionAbilityIDs = new Set(
-    Object.entries(abilityNameMap)
-      .filter(([, name]) => name && name.toLowerCase().includes('potion'))
-      .map(([id]) => Number(id))
-  );
-  console.log('[wcl] potion abilityIDs from masterData:', [...potionAbilityIDs]);
+  // Known potion buff IDs (TWW / 11.x)
+  // Tempered Potion variants: 431987, 431988, 431989, 431990
+  // Algari Mana Potion: 433845
+  // Potion of Unwavering Focus: 432314
+  // Add more as needed for new seasons
+  const POTION_ABILITY_IDS = new Set([
+    431987, 431988, 431989, 431990,  // Tempered Potion (str/agi/int/spirit)
+    433845,  // Algari Mana Potion
+    432314,  // Potion of Unwavering Focus
+    432311,  // Potion of Shocking Disclosure
+    432308,  // Potion of the Hushed Zephyr
+  ]);
 
-  // Count applybuff events where player applies potion buff to themselves
   const playerIDs = new Set(Object.keys(actorMap).map(Number));
   for (const event of potionEvts) {
     if (event.type !== 'applybuff') continue;
     if (!playerIDs.has(event.sourceID)) continue;
     if (event.sourceID !== event.targetID) continue;
-    if (!potionAbilityIDs.has(event.abilityGameID)) continue;
+    if (!POTION_ABILITY_IDS.has(event.abilityGameID)) continue;
     const playerActor = actorMap[event.sourceID];
     potionMap[playerActor.name] = (potionMap[playerActor.name] || 0) + 1;
   }
