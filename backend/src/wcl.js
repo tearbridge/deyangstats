@@ -364,7 +364,7 @@ ${deathsText}
   try {
     response = await kimi.chat.completions.create({
       model: 'kimi-k2-turbo-preview',
-      max_tokens: 1000,
+      max_tokens: 2000,
       messages: [{ role: 'user', content: prompt }],
     });
   } catch (err) {
