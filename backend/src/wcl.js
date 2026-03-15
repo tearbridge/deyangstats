@@ -117,6 +117,7 @@ async function fetchReportData(code) {
           healTable: table(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Healing)
           interruptTable: table(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Interrupts)
           playerDetails(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime)
+          rankings(fightIDs: $fightIDs)
           deaths: events(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Deaths) { data }
         }
       }
@@ -135,6 +136,17 @@ async function fetchReportData(code) {
                 : pd.healers?.find(x => x.name === p.name) ? 'Healer' : 'DPS';
     roleMap[p.name] = { role, spec: p.specs?.[0]?.spec || '' };
     potionMap[p.name] = p.potionUse || 0;
+  }
+
+  // Build rankings map: name → rankPercent
+  const rankMap = {};
+  const rankRoles = r.rankings?.data?.roles || {};
+  for (const group of Object.values(rankRoles)) {
+    if (Array.isArray(group)) {
+      for (const p of group) {
+        if (p.name) rankMap[p.name] = p.rankPercent ?? p.todayPercent ?? null;
+      }
+    }
   }
 
   const dpsEntries = r.dpsTable?.data?.entries || [];
@@ -168,6 +180,7 @@ async function fetchReportData(code) {
       totalDamage: entry.total || 0,
       interrupts: interruptMap[entry.name] || 0,
       potionUse: potionMap[entry.name] || 0,
+      rankPercent: rankMap[entry.name] ?? null,
       overhealPct: (info.role === 'Healer' || info.role === 'Tank') && healer && healer.total > 0
         ? Math.round(((healer.total - (healer.totalReduced || healer.total)) / healer.total) * 100)
         : null,
@@ -188,6 +201,7 @@ async function fetchReportData(code) {
         dps: 0, hps: Math.round((h.total || 0) / duration), totalDamage: 0,
         interrupts: interruptMap[h.name] || 0,
         potionUse: potionMap[h.name] || 0,
+        rankPercent: rankMap[h.name] ?? null,
         overhealPct: h.total > 0
           ? Math.round(((h.total - (h.totalReduced || h.total)) / h.total) * 100)
           : null,
@@ -283,16 +297,14 @@ async function analyzeReport(reportData) {
     : `❌ 超时 ${reportData.timerDiff}`;
 
   const playersText = reportData.players.map(p => {
-    const abilityStr = p.topAbilities?.length
-      ? `\n    技能占比：${p.topAbilities.map(a => `${a.name}(${a.pct}%)`).join(' / ')}`
-      : '';
     const dpsStr = p.dps > 0 ? `DPS ${(p.dps/1000).toFixed(1)}k` : '';
     const hpsStr = p.hps > 0 ? `HPS ${(p.hps/1000).toFixed(1)}k` : '';
+    const rankStr = p.rankPercent != null ? `WCL百分位 ${p.rankPercent.toFixed(0)}分` : 'WCL百分位 未知';
     const intStr = `打断 ${p.interrupts} 次`;
     const potionStr = `用药 ${p.potionUse} 次`;
     const overhealStr = p.overhealPct != null ? `过量治疗 ${p.overhealPct}%` : '';
-    const stats = [dpsStr, hpsStr, intStr, potionStr, overhealStr].filter(Boolean).join(' / ');
-    return `  - ${p.name}（${p.role} · ${p.class} ${p.spec}）：${stats}${abilityStr}`;
+    const stats = [dpsStr, hpsStr, rankStr, intStr, potionStr, overhealStr].filter(Boolean).join(' / ');
+    return `  - ${p.name}（${p.role} · ${p.class} ${p.spec}）：${stats}`;
   }).join('\n');
 
   const deathsText = reportData.deaths.length === 0
@@ -315,7 +327,7 @@ async function analyzeReport(reportData) {
 你具备魔兽世界的专业知识，包括各职业专精当前版本强度、大秘境boss机制、可规避技能判断等。
 
 【不同职责的评判标准，非常重要，不能搞混】
-- DPS：看输出数值，结合该专精当前版本的强度和期望输出水平来判断，技能占比可以判断转职是否合理
+- DPS：主要看WCL百分位，这是和全服同职业同专精比较的结果。低于50分说明输出偏弱，低于25分是明显不及格，高于75分才算发挥好
 - 坦克（Tank）：不要拿DPS跟输出职业比，那不是坦克的本职。重点看：拉怪节奏、死亡次数、是否有因为坦克问题导致全队出问题
 - 奶妈（Healer）：不要因为DPS高就说奶妈分心，奶完还能打输出说明治疗压力不大是好事。重点看：有没有人因为没奶到而死、HPS是否足够、过量治疗率（过高说明无效奶，过低说明奶量紧张）
 - 用药（所有人）：高层秘境不喝爆发药是说不过去的，用药0次要点名批评
