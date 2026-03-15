@@ -118,7 +118,6 @@ async function fetchReportData(code) {
           interruptTable: table(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Interrupts)
           playerDetails(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime)
           rankings(fightIDs: $fightIDs)
-          potionTable: table(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Potions)
           buffTable: table(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Buffs)
           deaths: events(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Deaths) { data }
         }
@@ -137,32 +136,23 @@ async function fetchReportData(code) {
     roleMap[p.name] = { role, spec: p.specs?.[0]?.spec || '' };
   }
 
-  // Potion usage from potionTable
+  // Flask, food, and potion presence from buffTable (dataType: Buffs)
+  // Flask: name starts with "Flask of"
+  // Food: name is "Hearty Well Fed"
+  // Potion: name contains "Potion" (e.g. "Tempered Potion", "Battle Potion of...")
+  const flaskMap = {};
+  const foodMap = {};
   const potionMap = {};
-  for (const group of (r.potionTable?.data?.entries || [])) {
-    for (const spell of (group.entries || [])) {
-      for (const player of (spell.details || [])) {
-        potionMap[player.name] = (potionMap[player.name] || 0) + (player.total || 0);
-      }
-    }
-  }
-
-  // Flask and food buff presence from buffTable
-  // Flask: name starts with "Flask of", Food: name is "Hearty Well Fed"
-  const flaskMap = {};  // name → true/false
-  const foodMap = {};   // name → true/false
-  for (const group of (r.buffTable?.data?.auras || [])) {
-    const buffName = group.name || '';
+  for (const aura of (r.buffTable?.data?.auras || [])) {
+    const buffName = aura.name || '';
     const isFlask = buffName.startsWith('Flask of');
     const isFood = buffName === 'Hearty Well Fed';
-    if (!isFlask && !isFood) continue;
-    for (const player of (group.bands ? [group] : [])) {
-      if (isFlask) flaskMap[group.name2 || group.icon] = true; // fallback
-    }
-    // auras structure: { name, type, guid, icon, totalUses, bands:[{startTime,endTime}], details:[{name,...}] }
-    for (const detail of (group.details || [])) {
+    const isPotion = buffName.includes('Potion');
+    if (!isFlask && !isFood && !isPotion) continue;
+    for (const detail of (aura.details || [])) {
       if (isFlask) flaskMap[detail.name] = true;
       if (isFood) foodMap[detail.name] = true;
+      if (isPotion) potionMap[detail.name] = (potionMap[detail.name] || 0) + (detail.totalUses || 1);
     }
   }
 
