@@ -72,7 +72,7 @@ export default function WCLPanel() {
       {/* Input */}
       <div className="card bg-base-100 shadow">
         <div className="card-body">
-          <p className="text-sm text-base-content/60 mb-3">粘贴 WarcraftLogs 链接或 Report Code，AI 帮你分析今晚谁是拖累</p>
+          <p className="text-sm text-base-content/60 mb-3">粘贴 WarcraftLogs 链接或 Report Code，AI 帮你分析这把谁在C谁在混</p>
           <div className="flex gap-2 mb-2">
             <input
               type="password"
