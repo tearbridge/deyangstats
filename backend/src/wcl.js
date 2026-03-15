@@ -139,6 +139,7 @@ async function fetchReportData(code) {
   }
 
   // Build rankings map: name → rankPercent
+  console.log('[wcl] rankings raw:', JSON.stringify(r.rankings)?.slice(0, 800));
   const rankMap = {};
   const rankRoles = r.rankings?.data?.roles || {};
   for (const group of Object.values(rankRoles)) {
