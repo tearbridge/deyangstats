@@ -359,12 +359,20 @@ ${deathsText}
 
 字数250-350字，语气真实不做作，可以说脏话。`;
 
-  const response = await kimi.chat.completions.create({
-    model: 'kimi-k2.5',
-    max_tokens: 700,
-    messages: [{ role: 'user', content: prompt }],
-  });
+  console.log('[wcl] calling kimi API...');
+  let response;
+  try {
+    response = await kimi.chat.completions.create({
+      model: 'kimi-k2.5',
+      max_tokens: 700,
+      messages: [{ role: 'user', content: prompt }],
+    });
+  } catch (err) {
+    console.error('[wcl] kimi API error:', err.status, err.message, JSON.stringify(err.error || {}));
+    throw err;
+  }
 
+  console.log('[wcl] kimi response:', JSON.stringify(response.choices?.[0]?.message || 'no choices'));
   return response.choices[0].message.content;
 }
 
