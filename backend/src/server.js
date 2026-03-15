@@ -407,7 +407,7 @@ app.post('/api/runners/:id/report', requireAdmin, async (req, res) => {
 // ===== WARCRAFT LOGS ROUTES =====
 
 // POST /api/wcl/analyze — analyze a WCL report
-app.post('/api/wcl/analyze', async (req, res) => {
+app.post('/api/wcl/analyze', requireAdmin, async (req, res) => {
   const { code } = req.body;
   if (!code || !/^[a-zA-Z0-9]+$/.test(code)) {
     return res.status(400).json({ error: '无效的 Report Code' });

@@ -22,6 +22,7 @@ function getClassColor(cls) {
 
 export default function WCLPanel() {
   const [code, setCode] = useState('');
+  const [token, setToken] = useState(() => localStorage.getItem('wcl_token') || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
@@ -35,6 +36,12 @@ export default function WCLPanel() {
     const reportCode = extractCode(code);
     if (!reportCode) return;
 
+    if (!token.trim()) {
+      setError('请先输入访问密码');
+      return;
+    }
+
+    localStorage.setItem('wcl_token', token);
     setLoading(true);
     setError(null);
     setResult(null);
@@ -42,7 +49,10 @@ export default function WCLPanel() {
     try {
       const res = await fetch('/api/wcl/analyze', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Token': token,
+        },
         body: JSON.stringify({ code: reportCode }),
       });
       const data = await res.json();
@@ -62,8 +72,15 @@ export default function WCLPanel() {
       {/* Input */}
       <div className="card bg-base-100 shadow">
         <div className="card-body">
-          <p className="text-sm text-base-content/60 mb-2">粘贴 WarcraftLogs 链接或 Report Code，AI 帮你分析今晚谁是拖累</p>
-          <div className="flex gap-2">
+          <p className="text-sm text-base-content/60 mb-3">粘贴 WarcraftLogs 链接或 Report Code，AI 帮你分析今晚谁是拖累</p>
+          <div className="flex gap-2 mb-2">
+            <input
+              type="password"
+              className="input input-bordered w-40"
+              placeholder="访问密码"
+              value={token}
+              onChange={e => setToken(e.target.value)}
+            />
             <input
               type="text"
               className="input input-bordered flex-1"
