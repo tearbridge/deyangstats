@@ -138,14 +138,16 @@ export default function WCLPanel() {
           <div className="card bg-base-100 shadow">
             <div className="card-body">
               <h3 className="font-bold mb-3">⚔️ 队员输出</h3>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {result.players
+                  .filter(p => p.role)  // 过滤掉 NPC（没有 role 的条目）
                   .sort((a, b) => b.dps - a.dps)
                   .map(player => {
                     const deathCount = result.deaths.filter(d => d.player === player.name).length;
                     const pct = Math.round((player.dps / totalDps) * 100);
                     return (
                       <div key={player.name}>
+                        {/* 名字行 */}
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-medium" style={{ color: getClassColor(player.class) }}>
@@ -156,10 +158,15 @@ export default function WCLPanel() {
                               <span className="badge badge-error badge-xs">💀×{deathCount}</span>
                             )}
                             {player.interrupts > 0 && (
-                              <span className="badge badge-info badge-xs">🛡 打断×{player.interrupts}</span>
+                              <span className="badge badge-info badge-xs">⚡打断×{player.interrupts}</span>
                             )}
                             {player.interrupts === 0 && (
                               <span className="badge badge-ghost badge-xs opacity-40">打断 0</span>
+                            )}
+                            {player.rankPercent != null && (
+                              <span className={`badge badge-xs ${player.rankPercent >= 75 ? 'badge-success' : player.rankPercent >= 50 ? 'badge-warning' : 'badge-error'}`}>
+                                WCL {player.rankPercent}%
+                              </span>
                             )}
                           </div>
                           <div className="text-sm text-right">
@@ -167,12 +174,23 @@ export default function WCLPanel() {
                             {player.hps > 0 && <span className="text-success font-mono ml-2">{(player.hps/1000).toFixed(1)}k HPS</span>}
                           </div>
                         </div>
+                        {/* DPS 进度条 */}
                         {player.dps > 0 && (
-                          <div className="w-full bg-base-300 rounded-full h-1.5">
+                          <div className="w-full bg-base-300 rounded-full h-1.5 mb-1.5">
                             <div
                               className="h-1.5 rounded-full transition-all"
                               style={{ width: `${pct}%`, backgroundColor: getClassColor(player.class) }}
                             />
+                          </div>
+                        )}
+                        {/* 技能占比 */}
+                        {player.topAbilities?.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {player.topAbilities.map(a => (
+                              <span key={a.name} className="text-xs bg-base-300 rounded px-1.5 py-0.5 text-base-content/60">
+                                {a.name} <span className="text-base-content/40">{a.pct}%</span>
+                              </span>
+                            ))}
                           </div>
                         )}
                       </div>
