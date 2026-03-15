@@ -111,7 +111,7 @@ async function fetchReportData(code) {
       reportData {
         report(code: $code) {
           dpsTable: table(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: DamageDone)
-          healTable: table(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: HealingDone)
+          healTable: table(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Healing)
         }
       }
     }
