@@ -1,6 +1,16 @@
 const fetch = require('node-fetch');
 const OpenAI = require('openai');
 
+// M+ affix ID → name (common ones)
+const AFFIX_NAMES = {
+  2: '激励', 3: '爆炸', 4: '无敌', 6: '加固', 7: '势不可当',
+  8: '厄运', 9: '击穿', 10: '迷宫', 11: '憎怒', 12: '击退',
+  13: '爆炸', 14: '吸血鬼', 120: '腐坏', 121: '活化', 122: '灵魂连接',
+  123: '腐化', 124: '风暴', 128: '地震', 129: '风卷', 130: '磁场',
+  131: '冰封', 132: '虚空', 133: '灼热', 134: '腐化', 135: '火焰',
+  136: '风行', 137: '激励', 138: '磁暴', 139: '坚韧', 140: '暴烈',
+};
+
 const TOKEN_URL = 'https://www.warcraftlogs.com/oauth/token';
 const API_URL = 'https://www.warcraftlogs.com/api/v2/client';
 
@@ -66,7 +76,7 @@ async function fetchReportData(code) {
             kill
             keystoneLevel
             keystoneTime
-            keystoneAffixes { name }
+            keystoneAffixes
             averageItemLevel
           }
           masterData {
@@ -194,7 +204,7 @@ async function fetchReportData(code) {
     title: report.title,
     dungeon: keystoneFight.name,
     keyLevel: keystoneFight.keystoneLevel,
-    affixes: keystoneFight.keystoneAffixes?.map(a => a.name) || [],
+    affixes: keystoneFight.keystoneAffixes?.map(id => AFFIX_NAMES[id] || `#${id}`) || [],
     avgIlvl: keystoneFight.averageItemLevel?.toFixed(0),
     duration: formatTime(actualTime),
     timerMs: keystoneTime,
