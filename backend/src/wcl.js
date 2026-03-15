@@ -118,8 +118,8 @@ async function fetchReportData(code) {
           interruptTable: table(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Interrupts)
           playerDetails(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime)
           rankings(fightIDs: $fightIDs)
-          castTable: table(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Casts)
           combatantInfoEvents: events(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: CombatantInfo) { data }
+          potionEvents: events(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Buffs, filterExpression: "type='applybuff' and ability.name contains 'Potion'") { data }
           deaths: events(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Deaths) { data }
         }
       }
@@ -160,21 +160,12 @@ async function fetchReportData(code) {
   console.log('[wcl] flaskMap:', JSON.stringify(flaskMap));
   console.log('[wcl] foodMap:', JSON.stringify(foodMap));
 
-  // Potion usage from castTable: entries per player, find abilities with "Potion" in name
+  // Potion usage from applybuff events filtered by "Potion" in ability name
   const potionMap = {};
-  const castEntries = r.castTable?.data?.entries || [];
-  console.log('[wcl] castTable entries count:', castEntries.length);
-  if (castEntries.length > 0) {
-    console.log('[wcl] castTable sample entry keys:', Object.keys(castEntries[0]));
-    console.log('[wcl] castTable sample abilities (first 3):', JSON.stringify((castEntries[0].abilities || []).slice(0, 3)));
-  }
-  for (const entry of castEntries) {
-    const playerName = entry.name;
-    for (const ability of (entry.abilities || [])) {
-      if ((ability.name || '').includes('Potion')) {
-        potionMap[playerName] = (potionMap[playerName] || 0) + (ability.total || 0);
-      }
-    }
+  for (const event of (r.potionEvents?.data || [])) {
+    const playerActor = actorMap[event.sourceID];
+    if (!playerActor) continue;
+    potionMap[playerActor.name] = (potionMap[playerActor.name] || 0) + 1;
   }
   console.log('[wcl] potionMap:', JSON.stringify(potionMap));
 
