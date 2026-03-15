@@ -44,7 +44,10 @@ export default function WCL() {
     try {
       const res = await fetch('/api/wcl/analyze', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-token': 'deyangkey',
+        },
         body: JSON.stringify({ code: reportCode }),
       });
       const data = await res.json();
