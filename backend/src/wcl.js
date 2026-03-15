@@ -118,7 +118,8 @@ async function fetchReportData(code) {
           interruptTable: table(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Interrupts)
           playerDetails(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime)
           rankings(fightIDs: $fightIDs)
-          buffTable: table(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Buffs)
+          castTable: table(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Casts)
+          combatantInfoEvents: events(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: CombatantInfo) { data }
           deaths: events(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Deaths) { data }
         }
       }
@@ -136,26 +137,28 @@ async function fetchReportData(code) {
     roleMap[p.name] = { role, spec: p.specs?.[0]?.spec || '' };
   }
 
-  // Debug: log buffTable structure
-  console.log('[wcl] buffTable sample:', JSON.stringify((r.buffTable?.data?.auras || r.buffTable?.data?.entries || []).slice(0, 3), null, 2));
-
-  // Flask, food, and potion presence from buffTable (dataType: Buffs)
-  // Flask: name starts with "Flask of"
-  // Food: name is "Hearty Well Fed"
-  // Potion: name contains "Potion" (e.g. "Tempered Potion", "Battle Potion of...")
+  // Flask + food from CombatantInfo events (auras active at fight start)
   const flaskMap = {};
   const foodMap = {};
+  for (const event of (r.combatantInfoEvents?.data || [])) {
+    const playerActor = actorMap[event.sourceID];
+    if (!playerActor) continue;
+    const name = playerActor.name;
+    for (const aura of (event.auras || [])) {
+      const auraName = aura.name || '';
+      if (auraName.startsWith('Flask of')) flaskMap[name] = true;
+      if (auraName === 'Hearty Well Fed') foodMap[name] = true;
+    }
+  }
+
+  // Potion usage from castTable: entries per player, find abilities with "Potion" in name
   const potionMap = {};
-  for (const aura of (r.buffTable?.data?.auras || [])) {
-    const buffName = aura.name || '';
-    const isFlask = buffName.startsWith('Flask of');
-    const isFood = buffName === 'Hearty Well Fed';
-    const isPotion = buffName.includes('Potion');
-    if (!isFlask && !isFood && !isPotion) continue;
-    for (const detail of (aura.details || [])) {
-      if (isFlask) flaskMap[detail.name] = true;
-      if (isFood) foodMap[detail.name] = true;
-      if (isPotion) potionMap[detail.name] = (potionMap[detail.name] || 0) + (detail.totalUses || 1);
+  for (const entry of (r.castTable?.data?.entries || [])) {
+    const playerName = entry.name;
+    for (const ability of (entry.abilities || [])) {
+      if ((ability.name || '').includes('Potion')) {
+        potionMap[playerName] = (potionMap[playerName] || 0) + (ability.total || 0);
+      }
     }
   }
 
