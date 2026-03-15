@@ -139,13 +139,13 @@ async function fetchReportData(code) {
   }
 
   // Build rankings map: name → rankPercent
-  console.log('[wcl] rankings raw:', JSON.stringify(r.rankings)?.slice(0, 800));
+  // Structure: rankings.data[0].roles.{tanks,healers,dps}.characters[]
   const rankMap = {};
-  const rankRoles = r.rankings?.data?.roles || {};
-  for (const group of Object.values(rankRoles)) {
-    if (Array.isArray(group)) {
-      for (const p of group) {
-        if (p.name) rankMap[p.name] = p.rankPercent ?? p.todayPercent ?? null;
+  const rankFight = (r.rankings?.data || [])[0];
+  if (rankFight?.roles) {
+    for (const group of Object.values(rankFight.roles)) {
+      for (const p of (group.characters || [])) {
+        if (p.name) rankMap[p.name] = p.rankPercent ?? null;
       }
     }
   }
