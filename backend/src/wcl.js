@@ -151,13 +151,14 @@ async function fetchReportData(code) {
     actorMap[actor.id] = actor;
   }
 
-  // Debug: log playerDetails structure
-  console.log('[wcl] playerDetails raw:', JSON.stringify(tables.reportData.report.playerDetails)?.slice(0, 800));
-  // Debug: log fight info
-  console.log('[wcl] keystoneFight:', JSON.stringify({ id: keystoneFight.id, keystoneLevel: keystoneFight.keystoneLevel, startTime: keystoneFight.startTime, endTime: keystoneFight.endTime, relStart, relEnd }));
-  // Debug: log raw table structure
-  console.log('[wcl] dpsTable raw:', JSON.stringify(tables.reportData.report.dpsTable)?.slice(0, 500));
-  console.log('[wcl] healTable raw:', JSON.stringify(tables.reportData.report.healTable)?.slice(0, 200));
+
+
+  // Build role map from playerDetails
+  const roleMap = {};
+  const pd = tables.reportData.report.playerDetails?.data?.playerDetails || {};
+  for (const player of (pd.tanks || [])) roleMap[player.name] = { role: 'Tank', spec: player.specs?.[0]?.spec || '' };
+  for (const player of (pd.healers || [])) roleMap[player.name] = { role: 'Healer', spec: player.specs?.[0]?.spec || '' };
+  for (const player of (pd.dps || [])) roleMap[player.name] = { role: 'DPS', spec: player.specs?.[0]?.spec || '' };
 
   // Parse DPS data
   const dpsEntries = tables.reportData.report.dpsTable?.data?.entries || [];
@@ -167,10 +168,12 @@ async function fetchReportData(code) {
 
   const players = dpsEntries.map(entry => {
     const healer = healEntries.find(h => h.id === entry.id);
+    const info = roleMap[entry.name] || {};
     return {
       name: entry.name,
       class: entry.type,
-      spec: entry.spec,
+      spec: info.spec || '',
+      role: info.role || 'DPS',
       dps: Math.round((entry.total || 0) / duration),
       hps: healer ? Math.round((healer.total || 0) / duration) : 0,
       totalDamage: entry.total || 0,
@@ -180,10 +183,12 @@ async function fetchReportData(code) {
   // Add healers not in DPS list
   for (const healer of healEntries) {
     if (!players.find(p => p.name === healer.name)) {
+      const info = roleMap[healer.name] || {};
       players.push({
         name: healer.name,
         class: healer.type,
-        spec: healer.spec,
+        spec: info.spec || '',
+        role: info.role || 'Healer',
         dps: 0,
         hps: Math.round((healer.total || 0) / duration),
         totalDamage: 0,
@@ -252,7 +257,7 @@ async function analyzeReport(reportData) {
     : `❌ 超时 ${reportData.timerDiff}`;
 
   const playersText = reportData.players
-    .map(p => `  - ${p.name}（${p.class} ${p.spec}）：DPS ${(p.dps/1000).toFixed(1)}k / HPS ${(p.hps/1000).toFixed(1)}k`)
+    .map(p => `  - ${p.name}（${p.role} · ${p.class} ${p.spec}）：DPS ${(p.dps/1000).toFixed(1)}k / HPS ${(p.hps/1000).toFixed(1)}k`)
     .join('\n');
 
   const deathsText = reportData.deaths.length === 0
