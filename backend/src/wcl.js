@@ -140,7 +140,14 @@ async function fetchReportData(code) {
   // Flask + food from CombatantInfo events (auras active at fight start)
   const flaskMap = {};
   const foodMap = {};
-  for (const event of (r.combatantInfoEvents?.data || [])) {
+  const combatantEvents = r.combatantInfoEvents?.data || [];
+  console.log('[wcl] combatantInfo events count:', combatantEvents.length);
+  if (combatantEvents.length > 0) {
+    const sample = combatantEvents[0];
+    console.log('[wcl] combatantInfo sample keys:', Object.keys(sample));
+    console.log('[wcl] combatantInfo sample auras (first 3):', JSON.stringify((sample.auras || []).slice(0, 3)));
+  }
+  for (const event of combatantEvents) {
     const playerActor = actorMap[event.sourceID];
     if (!playerActor) continue;
     const name = playerActor.name;
@@ -150,10 +157,18 @@ async function fetchReportData(code) {
       if (auraName === 'Hearty Well Fed') foodMap[name] = true;
     }
   }
+  console.log('[wcl] flaskMap:', JSON.stringify(flaskMap));
+  console.log('[wcl] foodMap:', JSON.stringify(foodMap));
 
   // Potion usage from castTable: entries per player, find abilities with "Potion" in name
   const potionMap = {};
-  for (const entry of (r.castTable?.data?.entries || [])) {
+  const castEntries = r.castTable?.data?.entries || [];
+  console.log('[wcl] castTable entries count:', castEntries.length);
+  if (castEntries.length > 0) {
+    console.log('[wcl] castTable sample entry keys:', Object.keys(castEntries[0]));
+    console.log('[wcl] castTable sample abilities (first 3):', JSON.stringify((castEntries[0].abilities || []).slice(0, 3)));
+  }
+  for (const entry of castEntries) {
     const playerName = entry.name;
     for (const ability of (entry.abilities || [])) {
       if ((ability.name || '').includes('Potion')) {
@@ -161,6 +176,7 @@ async function fetchReportData(code) {
       }
     }
   }
+  console.log('[wcl] potionMap:', JSON.stringify(potionMap));
 
   // Build rankings map: name → rankPercent
   // Structure: rankings.data[0].roles.{tanks,healers,dps}.characters[]
