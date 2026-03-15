@@ -411,6 +411,8 @@ ${deathsText}
 
 字数250-350字，语气真实不做作，可以说脏话。`;
 
+  console.log('[wcl] prompt:\n' + prompt);
+
   const response = await kimi.chat.completions.create({
     model: 'kimi-k2.5',
     max_tokens: 4000,
