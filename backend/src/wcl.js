@@ -162,7 +162,10 @@ async function fetchReportData(code) {
 
   // Potion usage from applybuff events filtered by "Potion" in ability name
   const potionMap = {};
-  for (const event of (r.potionEvents?.data || [])) {
+  const potionEvts = r.potionEvents?.data || [];
+  console.log('[wcl] potionEvents count:', potionEvts.length);
+  if (potionEvts.length > 0) console.log('[wcl] potionEvents sample:', JSON.stringify(potionEvts.slice(0, 3)));
+  for (const event of potionEvts) {
     const playerActor = actorMap[event.sourceID];
     if (!playerActor) continue;
     potionMap[playerActor.name] = (potionMap[playerActor.name] || 0) + 1;
