@@ -90,6 +90,7 @@ async function fetchReportData(code) {
           }
           masterData {
             actors(type: "Player") { id name subType server }
+            abilities { gameID name type }
           }
         }
       }
@@ -107,6 +108,10 @@ async function fetchReportData(code) {
   // Build actor map
   const actorMap = {};
   for (const actor of report.masterData.actors) actorMap[actor.id] = actor;
+
+  // Build ability name map
+  const abilityNameMap = {};
+  for (const ab of (report.masterData.abilities || [])) abilityNameMap[ab.gameID] = ab.name;
 
   // Step 2: DPS table + heal table + playerDetails + deaths (all in one query)
   const mainData = await gqlQuery(`
@@ -164,17 +169,24 @@ async function fetchReportData(code) {
   const potionMap = {};
   // Count potion usage from Items events (actual item use, not buff application)
   const potionEvts = r.potionEvents?.data || [];
-  // Find all unique abilityGameIDs from buff applybuff events on players
-  // Filter to only source === target (self-applied buffs, like potions)
+  // Build potion ability ID set using masterData ability names
+  const potionAbilityIDs = new Set(
+    Object.entries(abilityNameMap)
+      .filter(([, name]) => name && name.toLowerCase().includes('potion'))
+      .map(([id]) => Number(id))
+  );
+  console.log('[wcl] potion abilityIDs from masterData:', [...potionAbilityIDs]);
+
+  // Count applybuff events where player applies potion buff to themselves
   const playerIDs = new Set(Object.keys(actorMap).map(Number));
-  const selfBuffIDs = {};
   for (const event of potionEvts) {
     if (event.type !== 'applybuff') continue;
     if (!playerIDs.has(event.sourceID)) continue;
-    if (event.sourceID !== event.targetID) continue; // self-applied only
-    selfBuffIDs[event.abilityGameID] = (selfBuffIDs[event.abilityGameID] || 0) + 1;
+    if (event.sourceID !== event.targetID) continue;
+    if (!potionAbilityIDs.has(event.abilityGameID)) continue;
+    const playerActor = actorMap[event.sourceID];
+    potionMap[playerActor.name] = (potionMap[playerActor.name] || 0) + 1;
   }
-  console.log('[wcl] self-applied buff abilityGameIDs:', JSON.stringify(selfBuffIDs));
   console.log('[wcl] potionMap:', JSON.stringify(potionMap));
 
   // Build rankings map: name → rankPercent
