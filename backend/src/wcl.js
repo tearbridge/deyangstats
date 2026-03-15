@@ -125,12 +125,16 @@ async function fetchReportData(code) {
 
   const r = mainData.reportData.report;
 
-  // Role/spec map
+  // Role/spec map + potion usage
   const roleMap = {};
+  const potionMap = {};
   const pd = r.playerDetails?.data?.playerDetails || {};
-  for (const p of (pd.tanks || [])) roleMap[p.name] = { role: 'Tank', spec: p.specs?.[0]?.spec || '' };
-  for (const p of (pd.healers || [])) roleMap[p.name] = { role: 'Healer', spec: p.specs?.[0]?.spec || '' };
-  for (const p of (pd.dps || [])) roleMap[p.name] = { role: 'DPS', spec: p.specs?.[0]?.spec || '' };
+  for (const p of [...(pd.tanks || []), ...(pd.healers || []), ...(pd.dps || [])]) {
+    const role = pd.tanks?.find(x => x.name === p.name) ? 'Tank'
+                : pd.healers?.find(x => x.name === p.name) ? 'Healer' : 'DPS';
+    roleMap[p.name] = { role, spec: p.specs?.[0]?.spec || '' };
+    potionMap[p.name] = p.potionUse || 0;
+  }
 
   const dpsEntries = r.dpsTable?.data?.entries || [];
   const healEntries = r.healTable?.data?.entries || [];
@@ -162,6 +166,10 @@ async function fetchReportData(code) {
       hps: healer ? Math.round((healer.total || 0) / duration) : 0,
       totalDamage: entry.total || 0,
       interrupts: interruptMap[entry.name] || 0,
+      potionUse: potionMap[entry.name] || 0,
+      overhealPct: healer && healer.total > 0
+        ? Math.round(((healer.total - (healer.totalReduced || healer.total)) / healer.total) * 100)
+        : null,
       topAbilities,
     };
   });
@@ -177,7 +185,12 @@ async function fetchReportData(code) {
       players.push({
         name: h.name, class: h.type, spec: info.spec || '', role: info.role || 'Healer',
         dps: 0, hps: Math.round((h.total || 0) / duration), totalDamage: 0,
-        interrupts: interruptMap[h.name] || 0, topAbilities,
+        interrupts: interruptMap[h.name] || 0,
+        potionUse: potionMap[h.name] || 0,
+        overhealPct: h.total > 0
+          ? Math.round(((h.total - (h.totalReduced || h.total)) / h.total) * 100)
+          : null,
+        topAbilities,
       });
     }
   }
@@ -275,7 +288,10 @@ async function analyzeReport(reportData) {
     const dpsStr = p.dps > 0 ? `DPS ${(p.dps/1000).toFixed(1)}k` : '';
     const hpsStr = p.hps > 0 ? `HPS ${(p.hps/1000).toFixed(1)}k` : '';
     const intStr = `打断 ${p.interrupts} 次`;
-    return `  - ${p.name}（${p.role} · ${p.class} ${p.spec}）：${[dpsStr, hpsStr, intStr].filter(Boolean).join(' / ')}${abilityStr}`;
+    const potionStr = `用药 ${p.potionUse} 次`;
+    const overhealStr = p.overhealPct != null ? `过量治疗 ${p.overhealPct}%` : '';
+    const stats = [dpsStr, hpsStr, intStr, potionStr, overhealStr].filter(Boolean).join(' / ');
+    return `  - ${p.name}（${p.role} · ${p.class} ${p.spec}）：${stats}${abilityStr}`;
   }).join('\n');
 
   const deathsText = reportData.deaths.length === 0
@@ -300,7 +316,8 @@ async function analyzeReport(reportData) {
 【不同职责的评判标准，非常重要，不能搞混】
 - DPS：看输出数值，结合该专精当前版本的强度和期望输出水平来判断，技能占比可以判断转职是否合理
 - 坦克（Tank）：不要拿DPS跟输出职业比，那不是坦克的本职。重点看：拉怪节奏、死亡次数、是否有因为坦克问题导致全队出问题
-- 奶妈（Healer）：不要因为DPS高就说奶妈分心，奶完还能打输出说明治疗压力不大是好事。重点看：有没有人因为没奶到而死、HPS是否足够支撑这个层数
+- 奶妈（Healer）：不要因为DPS高就说奶妈分心，奶完还能打输出说明治疗压力不大是好事。重点看：有没有人因为没奶到而死、HPS是否足够、过量治疗率（过高说明无效奶，过低说明奶量紧张）
+- 用药（所有人）：高层秘境不喝爆发药是说不过去的，用药0次要点名批评
 
 【本次大秘境】
 副本：${reportData.dungeon}  层数：+${reportData.keyLevel}  词缀：${reportData.affixes.join('、') || '无'}
