@@ -150,13 +150,15 @@ async function fetchReportData(code) {
     actorMap[actor.id] = actor;
   }
 
+  // Debug: log fight info
+  console.log('[wcl] keystoneFight:', JSON.stringify({ id: keystoneFight.id, keystoneLevel: keystoneFight.keystoneLevel, startTime: keystoneFight.startTime, endTime: keystoneFight.endTime, relStart, relEnd }));
   // Debug: log raw table structure
   console.log('[wcl] dpsTable raw:', JSON.stringify(tables.reportData.report.dpsTable)?.slice(0, 500));
   console.log('[wcl] healTable raw:', JSON.stringify(tables.reportData.report.healTable)?.slice(0, 200));
 
   // Parse DPS data
-  const dpsEntries = tables.reportData.report.dpsTable?.entries || [];
-  const healEntries = tables.reportData.report.healTable?.entries || [];
+  const dpsEntries = tables.reportData.report.dpsTable?.data?.entries || [];
+  const healEntries = tables.reportData.report.healTable?.data?.entries || [];
 
   const duration = (keystoneFight.endTime - keystoneFight.startTime) / 1000; // seconds
 
