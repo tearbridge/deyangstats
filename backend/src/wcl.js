@@ -97,6 +97,7 @@ async function fetchReportData(code) {
         report(code: $code) {
           dpsTable: table(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: DamageDone)
           healTable: table(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Healing)
+          interruptTable: table(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Interrupts)
           playerDetails(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime)
           deaths: events(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Deaths) { data }
         }
@@ -115,6 +116,9 @@ async function fetchReportData(code) {
 
   const dpsEntries = r.dpsTable?.data?.entries || [];
   const healEntries = r.healTable?.data?.entries || [];
+  const interruptEntries = r.interruptTable?.data?.entries || [];
+  const interruptMap = {};
+  for (const e of interruptEntries) interruptMap[e.name] = e.total || 0;
   const duration = (keystoneFight.endTime - keystoneFight.startTime) / 1000;
 
   // Build players with top 5 abilities
@@ -133,6 +137,7 @@ async function fetchReportData(code) {
       dps: Math.round((entry.total || 0) / duration),
       hps: healer ? Math.round((healer.total || 0) / duration) : 0,
       totalDamage: entry.total || 0,
+      interrupts: interruptMap[entry.name] || 0,
       topAbilities,
     };
   });
@@ -147,7 +152,8 @@ async function fetchReportData(code) {
         .map(a => ({ name: a.name, pct: Math.round((a.total / (h.total || 1)) * 100) }));
       players.push({
         name: h.name, class: h.type, spec: info.spec || '', role: info.role || 'Healer',
-        dps: 0, hps: Math.round((h.total || 0) / duration), totalDamage: 0, topAbilities,
+        dps: 0, hps: Math.round((h.total || 0) / duration), totalDamage: 0,
+        interrupts: interruptMap[h.name] || 0, topAbilities,
       });
     }
   }
@@ -244,7 +250,8 @@ async function analyzeReport(reportData) {
       : '';
     const dpsStr = p.dps > 0 ? `DPS ${(p.dps/1000).toFixed(1)}k` : '';
     const hpsStr = p.hps > 0 ? `HPS ${(p.hps/1000).toFixed(1)}k` : '';
-    return `  - ${p.name}（${p.role} · ${p.class} ${p.spec}）：${[dpsStr, hpsStr].filter(Boolean).join(' / ')}${abilityStr}`;
+    const intStr = `打断 ${p.interrupts} 次`;
+    return `  - ${p.name}（${p.role} · ${p.class} ${p.spec}）：${[dpsStr, hpsStr, intStr].filter(Boolean).join(' / ')}${abilityStr}`;
   }).join('\n');
 
   const deathsText = reportData.deaths.length === 0
