@@ -162,13 +162,22 @@ async function fetchReportData(code) {
 
   // Potion usage from applybuff events filtered by "Potion" in ability name
   const potionMap = {};
+  // Find potion ability IDs from combatantInfo auras (source === self = sourceID)
+  const potionAbilityIDs = new Set();
+  for (const event of combatantEvents) {
+    for (const aura of (event.auras || [])) {
+      if ((aura.name || '').includes('Potion')) {
+        potionAbilityIDs.add(aura.ability);
+      }
+    }
+  }
+  console.log('[wcl] detected potion abilityIDs from auras:', [...potionAbilityIDs]);
+
+  // Count potion buff apply events matching those IDs
   const potionEvts = r.potionEvents?.data || [];
-  console.log('[wcl] potionEvents count:', potionEvts.length);
-  // Log unique ability names to find potion ability name
-  const uniqueAbilities = [...new Set(potionEvts.map(e => e.ability?.name).filter(Boolean))];
-  console.log('[wcl] buff ability names sample:', JSON.stringify(uniqueAbilities.slice(0, 30)));
-  if (potionEvts.length > 0) console.log('[wcl] potionEvents[0]:', JSON.stringify(potionEvts[0]));
   for (const event of potionEvts) {
+    if (!potionAbilityIDs.has(event.abilityGameID)) continue;
+    if (event.type !== 'applybuff') continue;
     const playerActor = actorMap[event.sourceID];
     if (!playerActor) continue;
     potionMap[playerActor.name] = (potionMap[playerActor.name] || 0) + 1;
