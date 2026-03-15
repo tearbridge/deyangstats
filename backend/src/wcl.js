@@ -167,12 +167,11 @@ async function fetchReportData(code) {
   // Count potion usage from Items events (actual item use, not buff application)
   const potionEvts = r.potionEvents?.data || [];
   // Known potion buff IDs (TWW / 11.x)
-  // Tempered Potion variants: 431987, 431988, 431989, 431990
-  // Algari Mana Potion: 433845
-  // Potion of Unwavering Focus: 432314
-  // Add more as needed for new seasons
   const POTION_ABILITY_IDS = new Set([
-    431987, 431988, 431989, 431990,  // Tempered Potion (str/agi/int/spirit)
+    431932,  // Tempered Potion candidate A
+    432180,  // Tempered Potion candidate B
+    433899,  // candidate C
+    433925,  // candidate D
     433845,  // Algari Mana Potion
     432314,  // Potion of Unwavering Focus
     432311,  // Potion of Shocking Disclosure
@@ -180,6 +179,17 @@ async function fetchReportData(code) {
   ]);
 
   const playerIDs = new Set(Object.keys(actorMap).map(Number));
+  // Debug: log self-applied IDs with low counts to find potion
+  const selfApplied = {};
+  for (const event of potionEvts) {
+    if (event.type !== 'applybuff') continue;
+    if (!playerIDs.has(event.sourceID)) continue;
+    if (event.sourceID !== event.targetID) continue;
+    selfApplied[event.abilityGameID] = (selfApplied[event.abilityGameID] || 0) + 1;
+  }
+  const lowFreq = Object.entries(selfApplied).filter(([,v]) => v <= 10).sort((a,b) => b[1]-a[1]);
+  console.log('[wcl] self-applied low-freq IDs (<=10):', JSON.stringify(lowFreq));
+
   for (const event of potionEvts) {
     if (event.type !== 'applybuff') continue;
     if (!playerIDs.has(event.sourceID)) continue;
