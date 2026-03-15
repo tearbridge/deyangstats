@@ -119,7 +119,7 @@ async function fetchReportData(code) {
           playerDetails(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime)
           rankings(fightIDs: $fightIDs)
           combatantInfoEvents: events(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: CombatantInfo) { data }
-          potionEvents: events(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Casts, hostilityType: Friendlies) { data }
+          potionEvents: events(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Buffs) { data }
           deaths: events(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Deaths) { data }
         }
       }
@@ -164,18 +164,17 @@ async function fetchReportData(code) {
   const potionMap = {};
   // Count potion usage from Items events (actual item use, not buff application)
   const potionEvts = r.potionEvents?.data || [];
-  console.log('[wcl] casts events count:', potionEvts.length);
-  if (potionEvts.length > 0) console.log('[wcl] casts[0]:', JSON.stringify(potionEvts[0]));
-  // Potion casts: abilityGameID known list or look for them dynamically
-  // Log all unique abilityGameIDs cast by players to find potion IDs
+  // Find all unique abilityGameIDs from buff applybuff events on players
+  // Filter to only source === target (self-applied buffs, like potions)
   const playerIDs = new Set(Object.keys(actorMap).map(Number));
-  const castAbilityIDs = {};
+  const selfBuffIDs = {};
   for (const event of potionEvts) {
+    if (event.type !== 'applybuff') continue;
     if (!playerIDs.has(event.sourceID)) continue;
-    if (event.type !== 'cast') continue;
-    castAbilityIDs[event.abilityGameID] = (castAbilityIDs[event.abilityGameID] || 0) + 1;
+    if (event.sourceID !== event.targetID) continue; // self-applied only
+    selfBuffIDs[event.abilityGameID] = (selfBuffIDs[event.abilityGameID] || 0) + 1;
   }
-  console.log('[wcl] player cast abilityGameIDs (top 20):', JSON.stringify(Object.entries(castAbilityIDs).sort((a,b)=>b[1]-a[1]).slice(0,20)));
+  console.log('[wcl] self-applied buff abilityGameIDs:', JSON.stringify(selfBuffIDs));
   console.log('[wcl] potionMap:', JSON.stringify(potionMap));
 
   // Build rankings map: name → rankPercent
