@@ -129,7 +129,7 @@ async function fetchReportData(code) {
   const roleMap = {};
   const potionMap = {};
   const pd = r.playerDetails?.data?.playerDetails || {};
-  console.log('[wcl] potionUse sample:', JSON.stringify([...(pd.dps||[]),...(pd.tanks||[]),...(pd.healers||[])].map(p => ({name:p.name, potionUse:p.potionUse, healthstoneUse:p.healthstoneUse}))));
+
   for (const p of [...(pd.tanks || []), ...(pd.healers || []), ...(pd.dps || [])]) {
     const role = pd.tanks?.find(x => x.name === p.name) ? 'Tank'
                 : pd.healers?.find(x => x.name === p.name) ? 'Healer' : 'DPS';
