@@ -173,14 +173,14 @@ async function fetchReportData(code) {
     432308,                   // Potion of the Hushed Zephyr
   ]);
 
+  // Track which players used any potion (boolean, targetID = the player who received the buff)
   const playerIDs = new Set(Object.keys(actorMap).map(Number));
   for (const event of potionEvts) {
     if (event.type !== 'applybuff') continue;
-    if (!playerIDs.has(event.sourceID)) continue;
-    if (event.sourceID !== event.targetID) continue;
+    if (!playerIDs.has(event.targetID)) continue;
     if (!POTION_ABILITY_IDS.has(event.abilityGameID)) continue;
-    const playerActor = actorMap[event.sourceID];
-    potionMap[playerActor.name] = (potionMap[playerActor.name] || 0) + 1;
+    const playerActor = actorMap[event.targetID];
+    if (playerActor) potionMap[playerActor.name] = true;
   }
 
 
@@ -226,7 +226,7 @@ async function fetchReportData(code) {
       hps: healer ? Math.round((healer.total || 0) / duration) : 0,
       totalDamage: entry.total || 0,
       interrupts: interruptMap[entry.name] || 0,
-      potionUse: potionMap[entry.name] || 0,
+      potionUse: !!potionMap[entry.name],
       hasFlask: !!flaskMap[entry.name],
       hasFood: !!foodMap[entry.name],
       rankPercent: rankMap[entry.name] ?? null,
@@ -250,7 +250,7 @@ async function fetchReportData(code) {
         name: h.name, class: h.type, spec: info.spec || '', role: info.role || 'Healer',
         dps: 0, hps: Math.round((h.total || 0) / duration), totalDamage: 0,
         interrupts: interruptMap[h.name] || 0,
-        potionUse: potionMap[h.name] || 0,
+        potionUse: !!potionMap[h.name],
         hasFlask: !!flaskMap[h.name],
         hasFood: !!foodMap[h.name],
         rankPercent: rankMap[h.name] ?? null,
@@ -353,7 +353,7 @@ async function analyzeReport(reportData) {
     const hpsStr = p.hps > 0 ? `HPS ${(p.hps/1000).toFixed(1)}k` : '';
     const rankStr = p.rankPercent != null ? `WCL百分位 ${p.rankPercent.toFixed(0)}分` : 'WCL百分位 未知';
     const intStr = `打断 ${p.interrupts} 次`;
-    const potionStr = `爆发药 ${p.potionUse} 次`;
+    const potionStr = p.potionUse ? '有爆发药' : '❌无爆发药';
     const flaskStr = p.hasFlask ? '有合剂' : '❌无合剂';
     const foodStr = p.hasFood ? '有食物' : '❌无食物';
     const overhealStr = p.overhealPct != null ? `过量治疗 ${p.overhealPct}%` : '';
