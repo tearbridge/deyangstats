@@ -116,10 +116,15 @@ async function fetchReportData(code) {
 
   const dpsEntries = r.dpsTable?.data?.entries || [];
   const healEntries = r.healTable?.data?.entries || [];
-  console.log('[wcl] interruptTable raw:', JSON.stringify(r.interruptTable)?.slice(0, 600));
-  const interruptEntries = r.interruptTable?.data?.entries || [];
+  // interruptTable structure: data.entries[].entries[].details[] = {name, total}
   const interruptMap = {};
-  for (const e of interruptEntries) interruptMap[e.name] = e.total || 0;
+  for (const group of (r.interruptTable?.data?.entries || [])) {
+    for (const spell of (group.entries || [])) {
+      for (const player of (spell.details || [])) {
+        interruptMap[player.name] = (interruptMap[player.name] || 0) + (player.total || 0);
+      }
+    }
+  }
   const duration = (keystoneFight.endTime - keystoneFight.startTime) / 1000;
 
   // Build players with top 5 abilities
