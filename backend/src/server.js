@@ -416,6 +416,7 @@ app.post('/api/wcl/analyze', async (req, res) => {
   try {
     const { fetchReportData, analyzeReport } = require('./wcl');
     const reportData = await fetchReportData(code);
+    if (req.query.debug) return res.json(reportData); // skip AI in debug mode
     const analysis = await analyzeReport(reportData);
     res.json({ ...reportData, analysis });
   } catch (err) {
