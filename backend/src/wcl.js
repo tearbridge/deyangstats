@@ -119,6 +119,7 @@ async function fetchReportData(code) {
           playerDetails(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime)
           rankings(fightIDs: $fightIDs)
           potionTable: table(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Potions)
+          buffTable: table(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Buffs)
           deaths: events(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Deaths) { data }
         }
       }
@@ -136,13 +137,32 @@ async function fetchReportData(code) {
     roleMap[p.name] = { role, spec: p.specs?.[0]?.spec || '' };
   }
 
-  // Potion usage from potionTable: entries[].entries[].details[] = {name, total}
+  // Potion usage from potionTable
   const potionMap = {};
   for (const group of (r.potionTable?.data?.entries || [])) {
     for (const spell of (group.entries || [])) {
       for (const player of (spell.details || [])) {
         potionMap[player.name] = (potionMap[player.name] || 0) + (player.total || 0);
       }
+    }
+  }
+
+  // Flask and food buff presence from buffTable
+  // Flask: name starts with "Flask of", Food: name is "Hearty Well Fed"
+  const flaskMap = {};  // name → true/false
+  const foodMap = {};   // name → true/false
+  for (const group of (r.buffTable?.data?.auras || [])) {
+    const buffName = group.name || '';
+    const isFlask = buffName.startsWith('Flask of');
+    const isFood = buffName === 'Hearty Well Fed';
+    if (!isFlask && !isFood) continue;
+    for (const player of (group.bands ? [group] : [])) {
+      if (isFlask) flaskMap[group.name2 || group.icon] = true; // fallback
+    }
+    // auras structure: { name, type, guid, icon, totalUses, bands:[{startTime,endTime}], details:[{name,...}] }
+    for (const detail of (group.details || [])) {
+      if (isFlask) flaskMap[detail.name] = true;
+      if (isFood) foodMap[detail.name] = true;
     }
   }
 
@@ -189,6 +209,8 @@ async function fetchReportData(code) {
       totalDamage: entry.total || 0,
       interrupts: interruptMap[entry.name] || 0,
       potionUse: potionMap[entry.name] || 0,
+      hasFlask: !!flaskMap[entry.name],
+      hasFood: !!foodMap[entry.name],
       rankPercent: rankMap[entry.name] ?? null,
       overhealPct: (info.role === 'Healer' || info.role === 'Tank') && healer && healer.total > 0
         ? Math.round(((healer.total - (healer.totalReduced || healer.total)) / healer.total) * 100)
@@ -210,6 +232,8 @@ async function fetchReportData(code) {
         dps: 0, hps: Math.round((h.total || 0) / duration), totalDamage: 0,
         interrupts: interruptMap[h.name] || 0,
         potionUse: potionMap[h.name] || 0,
+        hasFlask: !!flaskMap[h.name],
+        hasFood: !!foodMap[h.name],
         rankPercent: rankMap[h.name] ?? null,
         overhealPct: h.total > 0
           ? Math.round(((h.total - (h.totalReduced || h.total)) / h.total) * 100)
@@ -310,9 +334,11 @@ async function analyzeReport(reportData) {
     const hpsStr = p.hps > 0 ? `HPS ${(p.hps/1000).toFixed(1)}k` : '';
     const rankStr = p.rankPercent != null ? `WCL百分位 ${p.rankPercent.toFixed(0)}分` : 'WCL百分位 未知';
     const intStr = `打断 ${p.interrupts} 次`;
-    const potionStr = `用药 ${p.potionUse} 次`;
+    const potionStr = `爆发药 ${p.potionUse} 次`;
+    const flaskStr = p.hasFlask ? '有合剂' : '❌无合剂';
+    const foodStr = p.hasFood ? '有食物' : '❌无食物';
     const overhealStr = p.overhealPct != null ? `过量治疗 ${p.overhealPct}%` : '';
-    const stats = [dpsStr, hpsStr, rankStr, intStr, potionStr, overhealStr].filter(Boolean).join(' / ');
+    const stats = [dpsStr, hpsStr, rankStr, intStr, potionStr, flaskStr, foodStr, overhealStr].filter(Boolean).join(' / ');
     return `  - ${p.name}（${p.role} · ${p.class} ${p.spec}）：${stats}`;
   }).join('\n');
 
