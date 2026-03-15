@@ -363,8 +363,8 @@ ${deathsText}
   let response;
   try {
     response = await kimi.chat.completions.create({
-      model: 'kimi-k2.5',
-      max_tokens: 700,
+      model: 'kimi-k2-turbo-preview',
+      max_tokens: 1000,
       messages: [{ role: 'user', content: prompt }],
     });
   } catch (err) {
