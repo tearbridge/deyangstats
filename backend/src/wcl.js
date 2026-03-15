@@ -143,12 +143,7 @@ async function fetchReportData(code) {
   const flaskMap = {};
   const foodMap = {};
   const combatantEvents = r.combatantInfoEvents?.data || [];
-  console.log('[wcl] combatantInfo events count:', combatantEvents.length);
-  if (combatantEvents.length > 0) {
-    const sample = combatantEvents[0];
-    console.log('[wcl] combatantInfo sample keys:', Object.keys(sample));
-    console.log('[wcl] combatantInfo sample auras (first 3):', JSON.stringify((sample.auras || []).slice(0, 3)));
-  }
+
   for (const event of combatantEvents) {
     const playerActor = actorMap[event.sourceID];
     if (!playerActor) continue;
@@ -159,37 +154,26 @@ async function fetchReportData(code) {
       if (auraName === 'Hearty Well Fed') foodMap[name] = true;
     }
   }
-  console.log('[wcl] flaskMap:', JSON.stringify(flaskMap));
-  console.log('[wcl] foodMap:', JSON.stringify(foodMap));
+
 
   // Potion usage from applybuff events filtered by "Potion" in ability name
   const potionMap = {};
   // Count potion usage from Items events (actual item use, not buff application)
   const potionEvts = r.potionEvents?.data || [];
   // Known potion buff IDs (TWW / 11.x)
+  // Known potion buff IDs (TWW 11.x)
+  // Tempered Potion (str/agi/int variants): 431932, 433899, 433925
+  // Algari Mana Potion: 433845
+  // Potion of Unwavering Focus: 432314
   const POTION_ABILITY_IDS = new Set([
-    431932,  // Tempered Potion candidate A
-    432180,  // Tempered Potion candidate B
-    433899,  // candidate C
-    433925,  // candidate D
-    433845,  // Algari Mana Potion
-    432314,  // Potion of Unwavering Focus
-    432311,  // Potion of Shocking Disclosure
-    432308,  // Potion of the Hushed Zephyr
+    431932, 433899, 433925,  // Tempered Potion
+    433845,                   // Algari Mana Potion
+    432314,                   // Potion of Unwavering Focus
+    432311,                   // Potion of Shocking Disclosure
+    432308,                   // Potion of the Hushed Zephyr
   ]);
 
   const playerIDs = new Set(Object.keys(actorMap).map(Number));
-  // Debug: log self-applied IDs with low counts to find potion
-  const selfApplied = {};
-  for (const event of potionEvts) {
-    if (event.type !== 'applybuff') continue;
-    if (!playerIDs.has(event.sourceID)) continue;
-    if (event.sourceID !== event.targetID) continue;
-    selfApplied[event.abilityGameID] = (selfApplied[event.abilityGameID] || 0) + 1;
-  }
-  const lowFreq = Object.entries(selfApplied).filter(([,v]) => v <= 10).sort((a,b) => b[1]-a[1]);
-  console.log('[wcl] self-applied low-freq IDs (<=10):', JSON.stringify(lowFreq));
-
   for (const event of potionEvts) {
     if (event.type !== 'applybuff') continue;
     if (!playerIDs.has(event.sourceID)) continue;
@@ -198,7 +182,7 @@ async function fetchReportData(code) {
     const playerActor = actorMap[event.sourceID];
     potionMap[playerActor.name] = (potionMap[playerActor.name] || 0) + 1;
   }
-  console.log('[wcl] potionMap:', JSON.stringify(potionMap));
+
 
   // Build rankings map: name → rankPercent
   // Structure: rankings.data[0].roles.{tanks,healers,dps}.characters[]
