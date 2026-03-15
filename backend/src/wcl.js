@@ -112,6 +112,7 @@ async function fetchReportData(code) {
         report(code: $code) {
           dpsTable: table(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: DamageDone)
           healTable: table(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Healing)
+          playerDetails(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime)
         }
       }
     }
@@ -150,6 +151,8 @@ async function fetchReportData(code) {
     actorMap[actor.id] = actor;
   }
 
+  // Debug: log playerDetails structure
+  console.log('[wcl] playerDetails raw:', JSON.stringify(tables.reportData.report.playerDetails)?.slice(0, 800));
   // Debug: log fight info
   console.log('[wcl] keystoneFight:', JSON.stringify({ id: keystoneFight.id, keystoneLevel: keystoneFight.keystoneLevel, startTime: keystoneFight.startTime, endTime: keystoneFight.endTime, relStart, relEnd }));
   // Debug: log raw table structure
