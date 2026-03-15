@@ -147,13 +147,19 @@ export default function WCLPanel() {
                     return (
                       <div key={player.name}>
                         <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-medium" style={{ color: getClassColor(player.class) }}>
                               {player.name}
                             </span>
                             <span className="text-xs text-base-content/50">{player.spec}</span>
                             {deathCount > 0 && (
                               <span className="badge badge-error badge-xs">💀×{deathCount}</span>
+                            )}
+                            {player.interrupts > 0 && (
+                              <span className="badge badge-info badge-xs">🛡 打断×{player.interrupts}</span>
+                            )}
+                            {player.interrupts === 0 && (
+                              <span className="badge badge-ghost badge-xs opacity-40">打断 0</span>
                             )}
                           </div>
                           <div className="text-sm text-right">
