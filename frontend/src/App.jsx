@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import CharacterCard from './components/CharacterCard';
+import WCLPanel from './components/WCLPanel';
 import { getCharacters, getSeasons, getCharactersBySeason } from './api';
 
 export default function App() {
@@ -8,6 +9,7 @@ export default function App() {
   const [seasons, setSeasons] = useState([]);
   const [activeSeason, setActiveSeason] = useState(null); // null = current (from DB)
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('characters'); // 'characters' | 'wcl'
   const [seasonLoading, setSeasonLoading] = useState(false);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -79,6 +81,26 @@ export default function App() {
       </div>
 
       <div className="container mx-auto px-4 py-6 max-w-4xl">
+
+        {/* Main sub-tabs */}
+        <div className="tabs tabs-boxed bg-base-100 mb-4 p-1 inline-flex">
+          <button
+            className={`tab ${activeTab === 'characters' ? 'tab-active' : ''}`}
+            onClick={() => setActiveTab('characters')}
+          >
+            ⚔️ 角色
+          </button>
+          <button
+            className={`tab ${activeTab === 'wcl' ? 'tab-active' : ''}`}
+            onClick={() => setActiveTab('wcl')}
+          >
+            📜 大秘境复盘
+          </button>
+        </div>
+
+        {activeTab === 'wcl' && <WCLPanel />}
+
+        {activeTab === 'characters' && <>
 
         {/* Season tabs */}
         {seasons.length > 0 && (
@@ -161,6 +183,9 @@ export default function App() {
             </div>
           </>
         )}
+
+        {/* close characters tab wrapper */}
+        </>}
       </div>
 
       <footer className="text-center py-6 text-base-content/30 text-xs">
