@@ -118,6 +118,7 @@ async function fetchReportData(code) {
           interruptTable: table(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Interrupts)
           playerDetails(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime)
           rankings(fightIDs: $fightIDs)
+          potionTable: table(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Potions)
           deaths: events(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Deaths) { data }
         }
       }
@@ -126,16 +127,23 @@ async function fetchReportData(code) {
 
   const r = mainData.reportData.report;
 
-  // Role/spec map + potion usage
+  // Role/spec map
   const roleMap = {};
-  const potionMap = {};
   const pd = r.playerDetails?.data?.playerDetails || {};
-
   for (const p of [...(pd.tanks || []), ...(pd.healers || []), ...(pd.dps || [])]) {
     const role = pd.tanks?.find(x => x.name === p.name) ? 'Tank'
                 : pd.healers?.find(x => x.name === p.name) ? 'Healer' : 'DPS';
     roleMap[p.name] = { role, spec: p.specs?.[0]?.spec || '' };
-    potionMap[p.name] = p.potionUse || 0;
+  }
+
+  // Potion usage from potionTable: entries[].entries[].details[] = {name, total}
+  const potionMap = {};
+  for (const group of (r.potionTable?.data?.entries || [])) {
+    for (const spell of (group.entries || [])) {
+      for (const player of (spell.details || [])) {
+        potionMap[player.name] = (potionMap[player.name] || 0) + (player.total || 0);
+      }
+    }
   }
 
   // Build rankings map: name → rankPercent
