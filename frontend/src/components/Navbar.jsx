@@ -32,6 +32,12 @@ export default function Navbar() {
             🎯 Valorant
           </Link>
           <Link
+            to="/wcl"
+            className={`btn btn-sm btn-ghost ${location.pathname === '/wcl' ? 'btn-active' : ''}`}
+          >
+            📜 复盘
+          </Link>
+          <Link
             to="/admin"
             className={`btn btn-sm btn-ghost ${location.pathname === '/admin' ? 'btn-active' : ''}`}
           >

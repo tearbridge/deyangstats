@@ -404,6 +404,26 @@ app.post('/api/runners/:id/report', requireAdmin, async (req, res) => {
   }
 });
 
+// ===== WARCRAFT LOGS ROUTES =====
+
+// POST /api/wcl/analyze — analyze a WCL report
+app.post('/api/wcl/analyze', async (req, res) => {
+  const { code } = req.body;
+  if (!code || !/^[a-zA-Z0-9]+$/.test(code)) {
+    return res.status(400).json({ error: '无效的 Report Code' });
+  }
+
+  try {
+    const { fetchReportData, analyzeReport } = require('./wcl');
+    const reportData = await fetchReportData(code);
+    const analysis = await analyzeReport(reportData);
+    res.json({ ...reportData, analysis });
+  } catch (err) {
+    console.error('[wcl] error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ===== VALORANT ROUTES =====
 
 // Helper to refresh a val player's MMR snapshot

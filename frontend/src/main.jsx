@@ -9,6 +9,7 @@ import Marathon from './pages/Marathon';
 import RunnerReport from './pages/RunnerReport';
 import Valorant from './pages/Valorant';
 import ValorantDetail from './pages/ValorantDetail';
+import WCL from './pages/WCL';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -21,6 +22,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/runner/:id/report" element={<RunnerReport />} />
         <Route path="/valorant" element={<Valorant />} />
         <Route path="/valorant/:id" element={<ValorantDetail />} />
+        <Route path="/wcl" element={<WCL />} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>
