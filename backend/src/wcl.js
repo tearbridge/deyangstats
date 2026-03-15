@@ -119,7 +119,7 @@ async function fetchReportData(code) {
           playerDetails(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime)
           rankings(fightIDs: $fightIDs)
           combatantInfoEvents: events(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: CombatantInfo) { data }
-          potionEvents: events(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Buffs, filterExpression: "type='applybuff' and ability.name contains 'Potion'") { data }
+          potionEvents: events(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Buffs, limit: 100) { data }
           deaths: events(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Deaths) { data }
         }
       }
@@ -164,7 +164,10 @@ async function fetchReportData(code) {
   const potionMap = {};
   const potionEvts = r.potionEvents?.data || [];
   console.log('[wcl] potionEvents count:', potionEvts.length);
-  if (potionEvts.length > 0) console.log('[wcl] potionEvents sample:', JSON.stringify(potionEvts.slice(0, 3)));
+  // Log unique ability names to find potion ability name
+  const uniqueAbilities = [...new Set(potionEvts.map(e => e.ability?.name).filter(Boolean))];
+  console.log('[wcl] buff ability names sample:', JSON.stringify(uniqueAbilities.slice(0, 30)));
+  if (potionEvts.length > 0) console.log('[wcl] potionEvents[0]:', JSON.stringify(potionEvts[0]));
   for (const event of potionEvts) {
     const playerActor = actorMap[event.sourceID];
     if (!playerActor) continue;
