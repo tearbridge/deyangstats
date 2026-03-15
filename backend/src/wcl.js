@@ -101,9 +101,9 @@ async function fetchReportData(code) {
     throw new Error('未找到大秘境记录（只支持大秘境日志）');
   }
 
-  const reportStart = report.startTime;
-  const relStart = keystoneFight.startTime - reportStart;
-  const relEnd = keystoneFight.endTime - reportStart;
+  // Fight times in WCL are already relative to report start (ms), not absolute
+  const relStart = keystoneFight.startTime;
+  const relEnd = keystoneFight.endTime;
 
   // Step 2: Get DPS + HPS tables
   const tableQuery = `
