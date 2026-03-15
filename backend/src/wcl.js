@@ -116,6 +116,7 @@ async function fetchReportData(code) {
 
   const dpsEntries = r.dpsTable?.data?.entries || [];
   const healEntries = r.healTable?.data?.entries || [];
+  console.log('[wcl] interruptTable raw:', JSON.stringify(r.interruptTable)?.slice(0, 600));
   const interruptEntries = r.interruptTable?.data?.entries || [];
   const interruptMap = {};
   for (const e of interruptEntries) interruptMap[e.name] = e.total || 0;
