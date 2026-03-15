@@ -119,7 +119,7 @@ async function fetchReportData(code) {
           playerDetails(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime)
           rankings(fightIDs: $fightIDs)
           combatantInfoEvents: events(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: CombatantInfo) { data }
-          potionEvents: events(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Buffs, limit: 100) { data }
+          potionEvents: events(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Items) { data }
           deaths: events(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Deaths) { data }
         }
       }
@@ -162,22 +162,14 @@ async function fetchReportData(code) {
 
   // Potion usage from applybuff events filtered by "Potion" in ability name
   const potionMap = {};
-  // Find potion ability IDs from combatantInfo auras (source === self = sourceID)
-  const potionAbilityIDs = new Set();
-  for (const event of combatantEvents) {
-    for (const aura of (event.auras || [])) {
-      if ((aura.name || '').includes('Potion')) {
-        potionAbilityIDs.add(aura.ability);
-      }
-    }
-  }
-  console.log('[wcl] detected potion abilityIDs from auras:', [...potionAbilityIDs]);
-
-  // Count potion buff apply events matching those IDs
+  // Count potion usage from Items events (actual item use, not buff application)
   const potionEvts = r.potionEvents?.data || [];
+  console.log('[wcl] items events count:', potionEvts.length);
+  if (potionEvts.length > 0) console.log('[wcl] items[0]:', JSON.stringify(potionEvts[0]));
   for (const event of potionEvts) {
-    if (!potionAbilityIDs.has(event.abilityGameID)) continue;
-    if (event.type !== 'applybuff') continue;
+    if (event.type !== 'cast') continue;
+    const name = (event.ability?.name || event.abilityGameID?.toString() || '');
+    if (!name.toLowerCase().includes('potion')) continue;
     const playerActor = actorMap[event.sourceID];
     if (!playerActor) continue;
     potionMap[playerActor.name] = (potionMap[playerActor.name] || 0) + 1;
