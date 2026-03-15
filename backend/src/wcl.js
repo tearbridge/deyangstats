@@ -360,7 +360,7 @@ ${deathsText}
 字数250-350字，语气真实不做作，可以说脏话。`;
 
   const response = await kimi.chat.completions.create({
-    model: 'kimi-k2.5',
+    model: 'kimi-k2',
     max_tokens: 700,
     messages: [{ role: 'user', content: prompt }],
   });
