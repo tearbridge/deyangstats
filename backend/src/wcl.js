@@ -136,6 +136,9 @@ async function fetchReportData(code) {
     roleMap[p.name] = { role, spec: p.specs?.[0]?.spec || '' };
   }
 
+  // Debug: log buffTable structure
+  console.log('[wcl] buffTable sample:', JSON.stringify((r.buffTable?.data?.auras || r.buffTable?.data?.entries || []).slice(0, 3), null, 2));
+
   // Flask, food, and potion presence from buffTable (dataType: Buffs)
   // Flask: name starts with "Flask of"
   // Food: name is "Hearty Well Fed"
