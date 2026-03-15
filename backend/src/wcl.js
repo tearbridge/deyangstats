@@ -209,8 +209,8 @@ async function fetchReportData(code) {
   }
   const duration = (keystoneFight.endTime - keystoneFight.startTime) / 1000;
 
-  // Build players with top 5 abilities
-  const players = dpsEntries.map(entry => {
+  // Build players with top 5 abilities (filter out NPCs - only include entries present in roleMap)
+  const players = dpsEntries.filter(entry => !!roleMap[entry.name]).map(entry => {
     const healer = healEntries.find(h => h.id === entry.id);
     const info = roleMap[entry.name] || {};
     const topAbilities = (entry.abilities || [])
@@ -237,8 +237,9 @@ async function fetchReportData(code) {
     };
   });
 
-  // Add healer if not in DPS list
+  // Add healer if not in DPS list (filter out NPCs)
   for (const h of healEntries) {
+    if (!roleMap[h.name]) continue;
     if (!players.find(p => p.name === h.name)) {
       const info = roleMap[h.name] || {};
       const topAbilities = (h.abilities || [])
