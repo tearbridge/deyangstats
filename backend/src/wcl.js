@@ -119,7 +119,7 @@ async function fetchReportData(code) {
           playerDetails(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime)
           rankings(fightIDs: $fightIDs)
           combatantInfoEvents: events(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: CombatantInfo) { data }
-          potionEvents: events(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Items) { data }
+          potionEvents: events(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Casts, hostilityType: Friendlies) { data }
           deaths: events(fightIDs: $fightIDs, startTime: $startTime, endTime: $endTime, dataType: Deaths) { data }
         }
       }
@@ -164,16 +164,18 @@ async function fetchReportData(code) {
   const potionMap = {};
   // Count potion usage from Items events (actual item use, not buff application)
   const potionEvts = r.potionEvents?.data || [];
-  console.log('[wcl] items events count:', potionEvts.length);
-  if (potionEvts.length > 0) console.log('[wcl] items[0]:', JSON.stringify(potionEvts[0]));
+  console.log('[wcl] casts events count:', potionEvts.length);
+  if (potionEvts.length > 0) console.log('[wcl] casts[0]:', JSON.stringify(potionEvts[0]));
+  // Potion casts: abilityGameID known list or look for them dynamically
+  // Log all unique abilityGameIDs cast by players to find potion IDs
+  const playerIDs = new Set(Object.keys(actorMap).map(Number));
+  const castAbilityIDs = {};
   for (const event of potionEvts) {
+    if (!playerIDs.has(event.sourceID)) continue;
     if (event.type !== 'cast') continue;
-    const name = (event.ability?.name || event.abilityGameID?.toString() || '');
-    if (!name.toLowerCase().includes('potion')) continue;
-    const playerActor = actorMap[event.sourceID];
-    if (!playerActor) continue;
-    potionMap[playerActor.name] = (potionMap[playerActor.name] || 0) + 1;
+    castAbilityIDs[event.abilityGameID] = (castAbilityIDs[event.abilityGameID] || 0) + 1;
   }
+  console.log('[wcl] player cast abilityGameIDs (top 20):', JSON.stringify(Object.entries(castAbilityIDs).sort((a,b)=>b[1]-a[1]).slice(0,20)));
   console.log('[wcl] potionMap:', JSON.stringify(potionMap));
 
   // Build rankings map: name → rankPercent
