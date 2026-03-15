@@ -1,15 +1,33 @@
 const fetch = require('node-fetch');
 const OpenAI = require('openai');
 
-// M+ affix ID → name
+// M+ affix ID → 中文名（TWW赛季）
 const AFFIX_NAMES = {
-  2: '激励', 3: '爆炸', 4: '无敌', 6: '加固', 7: '势不可当',
-  8: '厄运', 9: '击穿', 10: '迷宫', 11: '憎怒', 12: '击退',
-  13: '爆炸', 14: '吸血鬼', 120: '腐坏', 121: '活化', 122: '灵魂连接',
-  123: '腐化', 124: '风暴', 128: '地震', 129: '风卷', 130: '磁场',
-  131: '冰封', 132: '虚空', 133: '灼热', 134: '腐化', 135: '火焰',
-  136: '风行', 137: '激励', 138: '磁暴', 139: '坚韧', 140: '暴烈',
-  147: '强悍',
+  // 核心词缀
+  9:   '暴虐',      // Tyrannical
+  10:  '强韧',      // Fortified
+  // 萨拉塔斯系列
+  147: '萨拉塔斯的诡计',      // Xal'atath's Guile
+  148: '约定:飞升',           // Xal'atath's Bargain: Ascendant
+  149: '约定:虚空缚',         // Xal'atath's Bargain: Voidbound
+  150: '约定:虔诚',           // Xal'atath's Bargain: Devout
+  151: '约定:湮灭',           // Xal'atath's Bargain: Oblivion
+  // 经典词缀（部分仍在轮换）
+  11:  '爆裂',      // Bursting
+  12:  '悲伤',      // Grievous
+  13:  '爆炸箱',    // Explosive
+  14:  '颤动',      // Quaking
+  6:   '加固',      // Reinforced (old)
+  7:   '势不可当',  // Bolstering
+  8:   '坚韧',      // Sanguine
+  3:   '活化',      // Volcanic
+  4:   '无敌',      // Spiteful
+  2:   '神经',      // Skittish
+  120: '腐坏',      // Corrupted
+  121: '爆发',      // Infested
+  122: '灵魂链接',  // Linked
+  123: '腐化',      // Beguiling
+  124: '风暴',      // Awakened
 };
 
 const TOKEN_URL = 'https://www.warcraftlogs.com/oauth/token';
