@@ -83,16 +83,15 @@ export default function CharacterDetail() {
 
   // CN dungeon name mapping (short_name → 中文)
   const DUNGEON_CN = {
-    // Midnight S1 (12.0) new dungeons
+    // Midnight S1 (12.0)
     WS:   '风行者之塔',
     MC:   '迈萨拉洞窟',
     NPX:  '节点希纳斯',
-    // Midnight S1 returning classics
-    MT:   '法师殿堂',
-    POS:  '萨隆之穴',
-    AA:   '阿尔盖塔学院',
-    SR:   '天穹之巅',
-    SEAT: '三神殿',
+    MT:   '魔导师平台',
+    POS:  '萨隆矿坑',
+    AA:   '艾杰斯亚学院',
+    SR:   '通天峰',
+    SEAT: '执政团之座',
     // TWW S2 (in case of old data)
     BREW: '酿酒大师',
     COT:  '时间洞穴',
