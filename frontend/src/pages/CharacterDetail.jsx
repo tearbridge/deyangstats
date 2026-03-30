@@ -81,13 +81,46 @@ export default function CharacterDetail() {
   const bestRuns = season ? [] : (profile?.mythic_plus_best_runs || []);
   const scores = profile?.mythic_plus_scores_by_season?.[0]?.scores || {};
 
+  // CN dungeon name mapping (short_name → 中文)
+  const DUNGEON_CN = {
+    // Midnight S1 (12.0) new dungeons
+    WS:   '风行者之塔',
+    MC:   '迈萨拉洞窟',
+    NPX:  '节点希纳斯',
+    // Midnight S1 returning classics
+    MT:   '法师殿堂',
+    POS:  '萨隆之穴',
+    AA:   '阿尔盖塔学院',
+    SR:   '天穹之巅',
+    SEAT: '三神殿',
+    // TWW S2 (in case of old data)
+    BREW: '酿酒大师',
+    COT:  '时间洞穴',
+    FALL: '诺坎德',
+    GB:   '格里姆巴托',
+    MISTS:'迷雾',
+    SBG:  '暗影月谷',
+    SIEGE:'太阳之石守卫',
+    WM:   '瓦勒沙拉',
+    // TWW S1
+    ARAK: '艾拉卡拉，回响之城',
+    DAWN: '破晨号',
+    FLOOD:'水闸行动',
+    PSF:  '圣焰隐修院',
+    HOA:  '赎罪大厅',
+    EDA:  '奥尔达尼生态圆顶',
+    STRT: '塔扎维什：琳彩天街',
+    GMBT: '塔扎维什：索·莉亚的宏图',
+  };
+
   // Aggregate best runs by dungeon for heatmap
   const dungeonMap = {};
   for (const run of bestRuns) {
-    const name = run.dungeon?.name || run.short_name || '未知';
-    const shortName = run.dungeon?.short_name || run.short_name || name.slice(0, 4);
-    if (!dungeonMap[name] || run.mythic_level > dungeonMap[name].mythic_level) {
-      dungeonMap[name] = { name, shortName, mythic_level: run.mythic_level, score: run.score || 0 };
+    const shortName = run.short_name || run.dungeon?.short_name || '?';
+    const engName = run.dungeon || run.dungeon?.name || shortName;
+    const cnName = DUNGEON_CN[shortName] || shortName;
+    if (!dungeonMap[shortName] || run.mythic_level > dungeonMap[shortName].mythic_level) {
+      dungeonMap[shortName] = { shortName, cnName, engName, mythic_level: run.mythic_level, score: run.score || 0 };
     }
   }
   const dungeonList = Object.values(dungeonMap).sort((a, b) => b.mythic_level - a.mythic_level);
@@ -255,8 +288,8 @@ export default function CharacterDetail() {
                   else if (d.mythic_level >= 10) { bg = 'bg-info/20'; textColor = 'text-info'; }
                   else if (d.mythic_level >= 5)  { bg = 'bg-success/20'; textColor = 'text-success'; }
                   return (
-                    <div key={d.name} className={`${bg} rounded-lg p-3 text-center`}>
-                      <div className="text-xs text-base-content/50 truncate mb-1">{d.shortName}</div>
+                    <div key={d.shortName} className={`${bg} rounded-lg p-3 text-center`}>
+                      <div className="text-xs text-base-content/50 truncate mb-1" title={d.shortName}>{d.cnName}</div>
                       <div className={`text-2xl font-bold ${textColor}`}>+{d.mythic_level}</div>
                       {d.score > 0 && (
                         <div className="text-xs text-primary mt-0.5">{d.score.toFixed(1)} 分</div>
