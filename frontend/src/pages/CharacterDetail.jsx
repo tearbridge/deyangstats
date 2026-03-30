@@ -81,6 +81,39 @@ export default function CharacterDetail() {
   const bestRuns = season ? [] : (profile?.mythic_plus_best_runs || []);
   const scores = profile?.mythic_plus_scores_by_season?.[0]?.scores || {};
 
+  // Aggregate best runs by dungeon for heatmap
+  const dungeonMap = {};
+  for (const run of bestRuns) {
+    const name = run.dungeon?.name || run.short_name || '未知';
+    const shortName = run.dungeon?.short_name || run.short_name || name.slice(0, 4);
+    if (!dungeonMap[name] || run.mythic_level > dungeonMap[name].mythic_level) {
+      dungeonMap[name] = { name, shortName, mythic_level: run.mythic_level, score: run.score || 0 };
+    }
+  }
+  const dungeonList = Object.values(dungeonMap).sort((a, b) => b.mythic_level - a.mythic_level);
+
+  // Gear slots
+  const GEAR_SLOTS = [
+    { key: 'head', label: '头部' },
+    { key: 'neck', label: '颈部' },
+    { key: 'shoulder', label: '肩部' },
+    { key: 'back', label: '披风' },
+    { key: 'chest', label: '胸部' },
+    { key: 'wrist', label: '护腕' },
+    { key: 'hands', label: '手部' },
+    { key: 'waist', label: '腰部' },
+    { key: 'legs', label: '腿部' },
+    { key: 'feet', label: '脚部' },
+    { key: 'finger1', label: '戒指1' },
+    { key: 'finger2', label: '戒指2' },
+    { key: 'trinket1', label: '饰品1' },
+    { key: 'trinket2', label: '饰品2' },
+    { key: 'mainhand', label: '主手' },
+    { key: 'offhand', label: '副手' },
+  ];
+  const gearItems = profile?.gear?.items || {};
+  const gearAvgIlvl = profile?.gear?.item_level_equipped || null;
+
   return (
     <div className="min-h-screen bg-base-300">
       <Navbar />
@@ -207,6 +240,71 @@ export default function CharacterDetail() {
             </div>
           </div>
         </div>
+
+        {/* Dungeon heatmap */}
+        {dungeonList.length > 0 && (
+          <div className="card bg-base-100 shadow mt-6">
+            <div className="card-body p-4">
+              <h2 className="card-title text-base font-wow">🗺️ 副本最高层数</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
+                {dungeonList.map((d) => {
+                  let bg = 'bg-base-300';
+                  let textColor = 'text-base-content/70';
+                  if (d.mythic_level >= 20) { bg = 'bg-error/20'; textColor = 'text-error'; }
+                  else if (d.mythic_level >= 15) { bg = 'bg-warning/20'; textColor = 'text-warning'; }
+                  else if (d.mythic_level >= 10) { bg = 'bg-info/20'; textColor = 'text-info'; }
+                  else if (d.mythic_level >= 5)  { bg = 'bg-success/20'; textColor = 'text-success'; }
+                  return (
+                    <div key={d.name} className={`${bg} rounded-lg p-3 text-center`}>
+                      <div className="text-xs text-base-content/50 truncate mb-1">{d.shortName}</div>
+                      <div className={`text-2xl font-bold ${textColor}`}>+{d.mythic_level}</div>
+                      {d.score > 0 && (
+                        <div className="text-xs text-primary mt-0.5">{d.score.toFixed(1)} 分</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Gear panel */}
+        {Object.keys(gearItems).length > 0 && (
+          <div className="card bg-base-100 shadow mt-6">
+            <div className="card-body p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="card-title text-base font-wow">⚔️ 当前装备</h2>
+                {gearAvgIlvl && (
+                  <span className="badge badge-primary badge-lg font-bold">均装 {gearAvgIlvl}</span>
+                )}
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                {GEAR_SLOTS.map(({ key, label }) => {
+                  const item = gearItems[key];
+                  if (!item) return (
+                    <div key={key} className="flex items-center gap-2 bg-base-300/50 rounded px-2 py-1.5">
+                      <span className="text-xs text-base-content/30 w-10 shrink-0">{label}</span>
+                      <span className="text-xs text-base-content/20">—</span>
+                    </div>
+                  );
+                  const ilvl = item.item_level || 0;
+                  let ilvlColor = 'text-base-content/70';
+                  if (ilvl >= 639) ilvlColor = 'text-yellow-400';
+                  else if (ilvl >= 626) ilvlColor = 'text-purple-400';
+                  else if (ilvl >= 610) ilvlColor = 'text-blue-400';
+                  return (
+                    <div key={key} className="flex items-center gap-2 bg-base-300/50 rounded px-2 py-1.5 hover:bg-base-300 transition-colors">
+                      <span className="text-xs text-base-content/40 w-10 shrink-0">{label}</span>
+                      <span className={`text-xs font-bold ${ilvlColor}`}>{ilvl}</span>
+                      {item.is_legendary && <span className="text-xs text-orange-400">★</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Score history chart (simple) */}
         {history.length > 1 && (
