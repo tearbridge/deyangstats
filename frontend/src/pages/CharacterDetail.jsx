@@ -149,10 +149,6 @@ export default function CharacterDetail() {
   // Ranks
   const ranks = profile?.mythic_plus_ranks || null;
   const activeSpec = profile?.active_spec_name?.toLowerCase();
-  // Determine role from scores or spec name
-  const isHealer = activeSpec && ['holy', 'restoration', 'discipline', 'mistweaver', 'preservation'].some(s => activeSpec.includes(s));
-  const isTank = activeSpec && ['protection', 'blood', 'brewmaster', 'guardian', 'vengeance'].some(s => activeSpec.includes(s));
-  const classRoleKey = isHealer ? 'class_healer' : isTank ? 'class_tank' : 'class_dps';
 
   return (
     <div className="min-h-screen bg-base-300">
@@ -233,10 +229,10 @@ export default function CharacterDetail() {
               <h2 className="card-title text-base font-wow">🏅 服务器排名</h2>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
                 {[
-                  { key: 'overall',    label: '综合',  scope: 'realm',  tag: '本服' },
-                  { key: 'class',      label: '职业',  scope: 'realm',  tag: '本服' },
-                  { key: 'overall',    label: '综合',  scope: 'region', tag: '国服' },
-                  { key: classRoleKey, label: isHealer ? '职业治疗' : isTank ? '职业坦克' : '职业输出', scope: 'region', tag: '国服' },
+                  { key: 'overall', label: '综合', scope: 'realm',  tag: '本服' },
+                  { key: 'class',   label: '职业', scope: 'realm',  tag: '本服' },
+                  { key: 'overall', label: '综合', scope: 'region', tag: '国服' },
+                  { key: 'class',   label: '职业', scope: 'region', tag: '国服' },
                 ].map(({ key, label, scope, tag }, i) => {
                   const val = ranks[key]?.[scope];
                   if (!val || val === 0) return null;
