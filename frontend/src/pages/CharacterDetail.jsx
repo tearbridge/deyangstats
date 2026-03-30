@@ -146,6 +146,14 @@ export default function CharacterDetail() {
   const gearItems = profile?.gear?.items || {};
   const gearAvgIlvl = profile?.gear?.item_level_equipped || null;
 
+  // Ranks
+  const ranks = profile?.mythic_plus_ranks || null;
+  const activeSpec = profile?.active_spec_name?.toLowerCase();
+  // Determine role from scores or spec name
+  const isHealer = activeSpec && ['holy', 'restoration', 'discipline', 'mistweaver', 'preservation'].some(s => activeSpec.includes(s));
+  const isTank = activeSpec && ['protection', 'blood', 'brewmaster', 'guardian', 'vengeance'].some(s => activeSpec.includes(s));
+  const classRoleKey = isHealer ? 'class_healer' : isTank ? 'class_tank' : 'class_dps';
+
   return (
     <div className="min-h-screen bg-base-300">
       <Navbar />
@@ -217,6 +225,35 @@ export default function CharacterDetail() {
       </div>
 
       <div className="container mx-auto px-4 py-6 max-w-4xl">
+
+        {/* Ranks */}
+        {ranks && (ranks.overall?.realm > 0 || ranks.class?.realm > 0) && (
+          <div className="card bg-base-100 shadow mb-6">
+            <div className="card-body p-4">
+              <h2 className="card-title text-base font-wow">🏅 服务器排名</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
+                {[
+                  { key: 'overall',     label: '综合全服' },
+                  { key: 'class',       label: '职业全服' },
+                  { key: classRoleKey,  label: isHealer ? '职业治疗' : isTank ? '职业坦克' : '职业输出' },
+                  { key: 'overall',     label: '本服综合', sub: 'realm' },
+                ].map(({ key, label, sub = null }, i) => {
+                  const scope = sub || 'world';
+                  const val = ranks[key]?.[scope];
+                  if (!val || val === 0) return null;
+                  return (
+                    <div key={i} className="bg-base-300 rounded-lg p-3 text-center">
+                      <div className="text-xs text-base-content/50 mb-1">{label}</div>
+                      <div className="font-bold text-lg text-primary">#{val.toLocaleString()}</div>
+                      <div className="text-xs text-base-content/30">{sub === 'realm' ? '服务器' : '全球'}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Best runs */}
           <div className="card bg-base-100 shadow">

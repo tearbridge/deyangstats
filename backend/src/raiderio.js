@@ -19,6 +19,7 @@ async function fetchCharacterProfile(region, realm, name, season = 'current') {
     `mythic_plus_scores_by_season:${season}`,
     'mythic_plus_recent_runs',
     'mythic_plus_best_runs:all',
+    'mythic_plus_ranks',
     'gear',
     'class',
     'active_spec_name',
