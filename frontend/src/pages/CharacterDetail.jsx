@@ -254,34 +254,7 @@ export default function CharacterDetail() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Best runs */}
-          <div className="card bg-base-100 shadow">
-            <div className="card-body p-4">
-              <h2 className="card-title text-base font-wow">🏆 本赛季最高记录</h2>
-              {bestRuns.length === 0 ? (
-                <p className="text-base-content/50 text-sm">{season ? '历史赛季地图记录不开放，仅显示总评分' : '暂无记录'}</p>
-              ) : (
-                <div className="space-y-2 max-h-80 overflow-y-auto">
-                  {bestRuns.slice(0, 20).map((run, i) => (
-                    <div key={i} className="flex items-center justify-between text-sm border-b border-base-content/5 pb-1">
-                      <div className="flex items-center gap-2">
-                        <KeyLevelBadge level={run.mythic_level} />
-                        <span className="truncate max-w-[130px] text-base-content/80">{DUNGEON_CN[run.short_name] || run.dungeon?.name || run.short_name}</span>
-                      </div>
-                      <div className="text-right">
-                        {run.score > 0 && (
-                          <span className="text-xs font-semibold text-primary">{run.score.toFixed(1)}</span>
-                        )}
-                        <div className="text-xs text-base-content/40">{formatDate(run.completed_at)}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
+        <div className="grid grid-cols-1 gap-6">
           {/* Recent runs */}
           <div className="card bg-base-100 shadow">
             <div className="card-body p-4">
