@@ -233,19 +233,17 @@ export default function CharacterDetail() {
               <h2 className="card-title text-base font-wow">🏅 服务器排名</h2>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
                 {[
-                  { key: 'overall',     label: '综合全服' },
-                  { key: 'class',       label: '职业全服' },
-                  { key: classRoleKey,  label: isHealer ? '职业治疗' : isTank ? '职业坦克' : '职业输出' },
-                  { key: 'overall',     label: '本服综合', sub: 'realm' },
-                ].map(({ key, label, sub = null }, i) => {
-                  const scope = sub || 'world';
+                  { key: 'overall',    label: '综合',  scope: 'realm',  tag: '本服' },
+                  { key: 'class',      label: '职业',  scope: 'realm',  tag: '本服' },
+                  { key: 'overall',    label: '综合',  scope: 'region', tag: '国服' },
+                  { key: classRoleKey, label: isHealer ? '职业治疗' : isTank ? '职业坦克' : '职业输出', scope: 'region', tag: '国服' },
+                ].map(({ key, label, scope, tag }, i) => {
                   const val = ranks[key]?.[scope];
                   if (!val || val === 0) return null;
                   return (
                     <div key={i} className="bg-base-300 rounded-lg p-3 text-center">
-                      <div className="text-xs text-base-content/50 mb-1">{label}</div>
+                      <div className="text-xs text-base-content/50 mb-1">{tag} {label}</div>
                       <div className="font-bold text-lg text-primary">#{val.toLocaleString()}</div>
-                      <div className="text-xs text-base-content/30">{sub === 'realm' ? '服务器' : '全球'}</div>
                     </div>
                   );
                 })}
